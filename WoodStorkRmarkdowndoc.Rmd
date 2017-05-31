@@ -1,49 +1,62 @@
 ---
-
-title: "Creating maps with ggplot2+sf and ggmap"
-author: "Melissa Moreno"
-date: "May 26, 2017"
+title: Creating maps with ggplot2+sf and ggmap
+author: Melissa Moreno
+date: May 26, 2017
 output:
-  html_document: default
-  pdf_document: default
-  
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+    fig_caption: false
+---
 
-```{r global_options}
+
+```{r global_options, include=FALSE}
 knitr::opts_chunk$set(
-  fig.width=12, 
-  fig.height =8, 
+  fig.width=6, 
+  fig.height =6, 
   warning=FALSE, 
   message=FALSE,
   cache=TRUE)
 ```
 
----
+#Introduction to creating maps with ggplot2+sf
+
+The package `ggplot2` implements the grammar of graphics in R, as a way to create code that make sense to the user (concept of layers and objects in the graph). The grammer of graphics is a term used for coding that uses words instead of random variables to make the more readable.
+
+The current standard for spatial objects in R is defined as `Spatial` classes in the package `sp`, but a new standard following the "simple feature" standard is currently in development in the package `sf`.
+
+The development version of the package `ggplot2` now allows to use simple features from the package `sf` as layers with the function `geom_sf`, and therefore to create maps just as in a GIS. Layers are added one at a time, so the order of each layer is very important.
+
+#Trajectory Map: Introduction
+
+The package `ggplot2`, allows you to make maps by creating layers of different special features (sf) on top of each other. All features will have to be in an sf format to be used by the ggplot2 function, so we will be also converting sp-> sf. In our map we will be mapping wood stork trajectories, and overlaying those trajectories on a map. 
+
+we will follow a step by step process on how you can develop a simlar map using the data you require to display. We wil first start with connecting to a data base to retrieve our trajectory data. 
 
 
+The package will enable other packages like DBI and RPostgreSQLwhen you load it.
 
-The package ggplot2, allows you to make maps by creating layers of different special features (sf) on top of each other. The package ggplot2 requires the package devtools to create the different layers in ggplot2 by using the command geom_sf. All features will have to be in an sf format to be used by the ggplot2 function, so we will be also converting sp-> sf. In our map we will be mapping wood stork trajectories, and overlaying those trajectories on a map. 
-
-First, we need to import our data. In this case, we are connecting to the network to retrieve the data. There are different ways to import your data, such as importing it manually. In this case, we need the follow package.
-
-This package will enable other packages like DBI and RPostgreSQLwhen you load it. We also require the packages:
-
-```{r,results="hide"}
+```{r chunk_rpostgis,results="hide"}
 library(rpostgis)
 ```
 
-When the package ggplot2 is loaded, it will automatically add the package scales. It should enable it, but if doesn't then enable the package. The package scales, allows for ggplot2 function to scale the images and subsequent layers correctly. 
+When the package 'ggplot2' is loaded, it will automatically add the package 'scales'. It should enable it, but if doesn't then enable the package manually. The package 'scales', allows for 'ggplot2' function to scale the images and subsequent layers correctly. 
 
-```{r,results="hide"}
+All data will have to be in an `sf` format to be used by `ggplot2`,and will be converted from `sp` to `sf` if necessary.
+
+```{r chunk_spsf,results="hide"}
 library(sp)
 library(sf)
 library(ggplot2)
 
 ```
 
+First, we need to import our data. In this case, we are connecting to the network to retrieve the data. There are different ways to import your data, such as importing it manually. In this case, we need the following package to connect to our local network.
 
-The first set of code is to connect to the network.
 
-```{r, include=FALSE}
+```{r chunk_trajmapdbconnect, include=FALSE}
 conn <- dbConnect("PostgreSQL", host = "basille-flrec.ad.ufl.edu",
                   dbname = "wood_stork_tracking", user = "mapper", password = "postgis")
 
@@ -52,66 +65,73 @@ conn <- dbConnect("PostgreSQL", host = "basille-flrec.ad.ufl.edu",
 
 The next set of code is retrieve the data from the database. This could take a few seconds. 
 
-```{r, include=FALSE}
+```{r chunk_trajmaptrajdata, include=FALSE}
 traj <- pgGetGeom(conn, name = c("main","full_trajectories"))
 ```
 We will also plot the trajectory to make sure the data was uploaded correctly.
 
-```{r}
+```{r chunk_trajmapplottraj}
 plot(traj, col = traj$animal_id)
 
 ```
 
-Head will see the class, features, extent, coordinates, variables, names and min and max values of the data your just retrieved.
+The (head) function will display the class, features, extent, coordinates, variables, names and min and max values of the data your just retrieved.
 
-```{r}
+```{r chunk_trajmapheadtraj}
 head(traj)
 ```
 
 The next step is very important. The package ggplot2 will give you an error you if use an sp feature to plot the layers. The package ggplot2 is not compatible with an sp object. It is only compatible with an sf object. 
 
 
-```{r}
+```{r chunk_trajtosf}
 traj1<- st_as_sf (traj)
 ```
 
-We need to start gathering our map data. In some R packages there is map data we can utilize. The package rworldmap has spatial images of any country in the world.
-```{r, results="hide"}
+#Trajectory Map: Retrieving world map data
+
+We need to start gathering our map data. There are packages in R with map data we can utilize. The package `rworldmap` provides a map of countries of the entire world; a map with higher resolution is available in the package `rworldxtra` (the resolution can be set to "low", if preferred):
+```{r chunk_rworldmap, results="hide"}
 library(rworldmap)
-
-```
-
-You can get a higher resolution of the map with the following package.
-```{r, results="hide"}
 library(rworldxtra)
+
 ```
+
 
 In the code below, we are retrieving a map from the database converting the map from the sp format to an sf format. The first line is to retrieve a world map and make it a high resolution. You can lessen the resolution to "low", is preferred. 
 
-```{r}
+```{r chunk_trajmapgetMap, results="markup"}
 worldmap <- getMap(resolution = "high")
-map1<- sf::st_as_sf(worldmap )
 
 ```
 
-Of course, we need to check to make sure that the map was properly retrieved and converted into an sf object.
+The world map is available as a `SpatialPolygonsDataFrame`; we thus convert it to a simple feature using `st_as_sf` (from package `sf`).
 
-```{r,cache=TRUE, warning=FALSE, message=FALSE}
+```{r chunk_trajmapstassf}
+map1<- sf::st_as_sf(worldmap )
+class(worldmap)
+```
+
+
+We can check that the map was properly retrieved and converted into an `sf` object, and plot it.
+
+```{r chunk_trajmapplotmap1,cache=TRUE, warning=FALSE, message=FALSE}
 plot(map1)
 ```
 
+#Trajectory Map: Retrieving country names
 
-The next code will be to make a data.frame for the names of countries in the map. The package ggplot2 does allow for data.frame to be used in the layers.This code is general and can work for almost any map. For the code below, the packages below are required.
+The next code will be to make a 'data.frame' for the names of countries in the map. The package 'ggplot2' is compatible with 'data.frame' data to be used in the layers.This code is general and can work for almost any map. For the code below, the packages below are required.
 
-```{r, results="hide"}
+```{r chunk_mapstool, results="hide"}
 library(maps)
 library(maptools)
 
 ```
 
-The following code is retrieving and isolating the country names to use in a data.frame format. 
+As before, we must start with retrieving a world map. Usin the 'map' feature we can retrieve that map and its associated data. We want to single out the countries names through the 'sapply' and 'strsplit' functions. We must ensure that our newly retieved world is in the correct coordinate units, so the last code line below will be to set the map to the WGS84 coordinate unite, which is the standard unit type. Some maps might need that adjusted to another coordinate unit type but those would be in very special cases. 
 
-```{r}
+```{r chunk_trajmapcountrynamesretrieval}
 worldmap <- map('world', fill=TRUE, col="transparent", plot=FALSE)
 
 IDs <- sapply(strsplit(worldmap$names, ":"), function(x) x[1])
@@ -120,75 +140,80 @@ world_sp <- map2SpatialPolygons(worldmap, IDs=IDs, proj4string=CRS("+proj=longla
 
 ```
 
-Now that the names have been retrieved, we can also make the names appeara in the center of the largest area of the country polygon.
+Now that the names have been retrieved and isolated, we will make the country names appear in the center of the largest area of the [country] polygon.
 
-```{r}
+```{r chunk_trajmaplabeldataframe}
 world.label <- data.frame(
   	country = names(world_sp),
  	coordinates(world_sp))
 ```
 
-We can use the head function to check the headings. We will require to use the x and y coordinates in our ggplot2 map.In our ggplot map we will need to laybe X1 and X2 respectively. 
+We can now use the (head) function to check the headings of the country names data. We will require to use the x and y coordinates in our ggplot2 map, so it's important to check how each data.frame labels that information.In our map we will need to label X1 and X2 for the x and y coordinates,  respectively. 
 
-```{r}
+```{r chunk_headworldlabel}
 head(world.label)
 ```
 
+#Trajectory Map: Graphing- Packages and Concepts
 
-Next up would be the actualy packages the map graphing. There will be multiple packages associated with the map, but they will be defined per line. For geom_sf we mentioned previously, we require devtools.
 
-```{r,results="hide", warning=FALSE, message=FALSE}
-library(devtools)  
-```
-
+Next up would be the actual packages for map graphing. There will be multiple packages associated with the map, but they will be defined per line. 
 
 To visualize the data, we require another package, ggmap. 
 
-```{r,results="hide"}
+```{r chunk_ggmap,results="hide"}
 library (ggmap)
 ```
 
-Many other packages are available to create a  scale bar on a map, but many didn't allow for the north symbol and scale bar to be coded in the same line. The package legendMap was easy to add into the ggplot2 code. Another package that can add the scale and north symbol is "prettymapr", but it more difficult to apply, and adding a scale bar proved to be difficult.  The scale bar and north arrow are added using package legendMap. The package legendMap will required the package grid, so just double check it is added when you load legendMap.
+Many other packages are available to create a  scale bar on a map, but many didn't allow for the north symbol and scale bar to be coded in the same line. The package 'legendMap' was easy to add into the ggplot2 code. Another package that can add the scale and north symbol is "prettymapr", but it more difficult to apply, and adding a scale bar proved to be difficult.  The scale bar and north arrow are added using package 'legendMap'. The package 'legendMap' will required the package 'grid', so just double check it is added when you load and enable 'legendMap'. The package 'legendMap' requires that you first install 'devtools', which is developing tool in GitHub. 
 
-```{r,results="hide"}
+```{r chunk_legendMap,results="hide"}
+#install.packages("devtools")
+library(devtools)
+#install_github("3wen/legendMap")
 library(legendMap)
 ```
 
 
-To think of mapping conceptually, we need to gather all of the materials needed to make our map; the trajectory data, the map, and the country names. Everything else can be added using additional codes in ggplot. 
+To think of mapping conceptually, we need to gather all of the materials needed to make our map; the trajectory data, the map, and the country names. Everything else can be added using additional codes using commands in 'ggplot2'. 
+
+#Trajectory Map: Graphing- Base Map
 
 Now to get to the mapping!
 
-Layers are added one at a time, so the order of each layer is very important. 
+Layers are added one at a time, so the order of each layer is very important. For every new feature/layer/value we want to add to our map we must use the + sign.
 
-First lets start with adding our base map to ggplot.This is going to be a general map of the world. We will narrow down our area of interest later.We are making the fill color of the map land as a dark green. You can change it to whatever you color you like, but check the R color codes before adding your preferred color. 
+First lets start with adding our base map to ggplot.This is going to be a general map of the world. We will narrow down our area of interest later.We are making the fill color of the map land as "darkolivegreen3", but that is because we don't rely on the map land color to display any informatin for us. In the 'ggplot2' manual, there are ways to create gradient color scales to display information via color on your map, is you so require it. The base map codes requiresat least the 'data' aspect, 'fill' or 'color' and be changed or added at any time.
 
-```{r  chunk_basemap}
+```{r  chunk_trajmapbasemap}
 ggplot()+ 
   geom_sf(data=map1, fill="darkolivegreen3")
-
 ```
 
+#Trajectory Map: Graphing- Overlaying the trajectory on a map
 
-Next we will add the trajectory of the wood stork movements. We will make each individual wood stork trajectory a different color. The report doesn't generate the trajectories correctly, so I will still include the code, but silence the trajectory disply. 
+Next we will add the trajectory of the wood stork movements on top of the base map. We will make each individual wood stork trajectory a different color as well, but the color is up to your preferance. The report doesn't generate the trajectories correctly, so I will still include the code, but silence the trajectory display.The trajectory was imported as a SpatialLinesDataFrame object, so we can use 'geom_sf' t add this layer. The command 'geom_sf' requires te necessary 'data', and an aesthetic argument. You can see in the code we add that the factor deciding the color of the trajectory is based on each animals ID. 
 
-```{r chunk_trajectory}
+```{r chunk_trajmaptrajectory}
 ggplot()+ 
   	geom_sf(data=map1, fill="darkolivegreen3") #+ geom_sf(data=traj1, aes(colour=factor(animal_id)))
 
 ```
 
+#Trajectory Map: Graphing- Specifying Coordinate Ranges
 
-The next line of code will allow you to set the coordinates of the map, to "zoom" in the area you are interested in mapping. This will change for every map you make, so it is important to do the had(traj) at the beginning, which will show you the coordinates of your data to give you an idea of where to start. 
+The next line of code will allow you to set the coordinates of the map, to "zoom" in the area you are interested in mapping. This will change for every map you make, so it is important to do the head() at the beginning of your code, which will show you the coordinates of your data to give you an idea of where to start. To add this we use 'coord_sf' to create our coordinate parameters. we added our x axis limitations, and y axis limitations. We also chose to make the expansion set to true. 
 
-```{r chunk_coordinates}
+```{r chunk_trajmapcoordinates}
 ggplot()+
   geom_sf(data=map1, fill="darkolivegreen3")+ #geom_sf(data=traj1, aes(colour=factor(animal_id)))+
   	coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand=TRUE )
 
 ```
 
-We can add a title and subtitle to our map using ggtitle.
+#Trajectory Map: Graphing- Title and Subtitle
+
+We can add a title and subtitle to our map using the command 'ggtitle'. Make sure you add the quotation marks around your title and subtitle.
    
 ```{r chunk_title}
 ggplot()+
@@ -199,7 +224,9 @@ coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand=TRUE )+
 
 ```
 
-Here is the scale bar we were talking about before. I have to add coordinates for the scale bar. This will change per map. Some variables in to know is the arrow_distance is the distance from the north arrow to the scale. This isn't in miles, it's in map units that ggplot2 calculates. The variable arrow_length is also important because I had originally made it equal to 50, but that was so small you couldn't really see it. The finally map unit was 200, which displays it pretty clearly behind the north symbol. 
+#Trajectory Map: Graphing- Scale Bar and North Symbol
+
+Here is the scale bar we were talking about before with the package 'legendMap'. For the scale bar, coordinates have to be speficied in the lon and lat arguments. In the distance_lon argumen it's the shaded in amount your want to specify. Since our map covers large area, 500 km is good distance to use. If you are making a map in a smaller area, you will want to choose a smaller distance. The distance_unit is normally set to "km". The arrow_length, is the map unit size of the north arrow symbol that will appear behind the N north symbol. The arrow_distance is the distance from the north arrow to the scale. This isn't in miles, it's in map units that 'ggplot2' calculates. The variable arrow_length is also important because we had originally made it equal to 50, but that was so small you couldn't really see it. The finally map unit was 200, which displays it pretty clearly behind the N north symbol. You can choose the size of the N north symbol with arrow_north_size, which is a number starting at 0.1. Our orientation will be true, and the legend_size, which is the size of the numerical values show, wil be a smaller value than the arrow_north_size.
 
 ```{r chunk_scalebar}
 ggplot()+
@@ -211,10 +238,13 @@ ggplot()+
 
 ```
 
+#Trajectory Map: Graphing- Axis Titles
+
 Once more, the order of the layers is very important. If the scale is added first, it would show up behind the map.
+
 It might disappear from the map. 
 
-I have a problem with the names of the x and y axis so lets change them to something more suitable!  
+The lables on the axis are not appealing, so lets change them to something more suitable!  
 
 ```{r chunk_axistitles}
 ggplot()+
@@ -227,7 +257,9 @@ ggplot()+
 
 ```
 
-Our next step is to add the country names. We can see that after the descriptive factor aes we need to add the X1 and X2 coordinates we were referring to before. Other packages will have differnet variable names for the x and y coordinates so check before you make the code line. I noticed that the conuntry names were not so centered, so I nudged them slightly to the right. I also liked my country names bold, so I added fontface to express that. 
+#Trajectory Map: Graphing- Adding Country Labels
+
+Our next step is to add the country baels that we retrieved and isolated earlier. We start off with command 'geom_text', which will add a layer of text to our map. We can see that after the aesthetic factor aes we need to add the X1 and X2 coordinates, which we determined earlier with the head() command. Other packages will have differnet variable names for the x and y coordinates, so check before you make the code line. The command 'geom_text' requires the 'data' needed to enter the country names, which we saved earlier as world.label. We can choose the size, and we a lso have to mention if we would like the previous aesthetics to remain in the the layer under inherit.aes. For the world labels we noticed that the country names were not so centered, so they were nudged slightly to the right. The color of the labels is chosen under the argument 'col', and we chose standard black. The check_overlap, makes sure that the country names are not overlapping each other, and if they are some of the names will be removed. We also liked the country names bold, so we added the argrument fontface to express that. 
 
 ```{r chunk_countrylabel}
 ggplot()+
@@ -241,7 +273,9 @@ ggplot()+
 
 ```
 
-Now to make the final touches. We want to edit the theme of the map. I added theme_classic, but there are many others. You can experiment adding and removing themes to see which one you prefer. We really wanted a border around the map, so panel.border was added. It will take some time to see which style best suits your map.
+#Trajectory Map: Graphing- Map Themes
+
+Now to make the final touches. We want to edit the theme of the map to make it more appealing. We added theme_classic for a standard theme, but there are many other themes that can be selected from. You can experiment adding and removing themes to see which one best suits your map.The argument legend.position, wasn't use since we don't require a legend in our map. Otherwise, such variables such as topright or bottomleft might be used. The panel.grid.major will allow us to edit the grid lines in the map. We chose a gray color, with a line type of dashed to break up the map borders from the grid lines. We wanted to add some color to the map backgraound, which is the ocean essentially, so we changed that with panel.background. We really wanted a border around the map, so the panel.border argument was used to add one . It will take some time to see elements of the theme need to be changed or added to best meet your map needs. 
 
 ```{r chunk_theme}
 ggplot()+
@@ -257,102 +291,119 @@ ggplot()+
 
 ```
 
+#Trajectory Map: Final notes- Total packages
 
 I also wanted to make a note of the total packages needed to make this map. If you are getting an error at any time, check that you have these packages enabled. 
 
 DBI, devtools, ggmap, ggplot2, ggsn, legendMap, maps, maptools, rgdal, rgeos, rpostgis, RPostgreSQL, Rworldmap, Rworldxtra, scales, sf, sp, grid, MASS
 
 
-Satellite Map of Observation Sites
----
-Melissa Moreno
----
-May 28, 2017
----
+#Satellite Map of Observation Sites: Introduction
 
-In this tutorial we will be creating a satellite image map with two identifying points. Satellite image maps can be useful when you want to show landscape features when you are plotting. Satellite image maps can look cluttered if you are displaying a lot of information on your map.
+In this tutorial we will be creating a satellite image map with the two observation sites we used to record wood stork behaviors. Satellite image maps can be useful when you want to include landscape features  on your map. Satellite image maps can look cluttered if you are displaying a lot of information, however. There are many packages that you can use to retreive satellite images, such as 'RgoogleMaps', but in our case we will use 'maps' and 'maptools'. 
 
-We will first start with enabling the basic packages. The packages maps and maptools will allow you to retrieve map data.
+#Satellite Map: Retreiving Satellite Map
 
-```{r}
+We will first start with enabling the basic packages for our satellite map. The packages 'maps' and 'maptools' will allow you to retrieve map data from the packages.
+
+```{r chunk_satellitepackages}
 library(sp)
 library (sf)
 library(maps)
 library(maptools)
 ```
 
+#Satellite Map: Defining Point Coordinates
+
 We need to define our two points. These points will signify the locations of where our observation sites were. In the maps package, it identifies the coordinates in lon and lat variables. Make sure to put both of the longitide coordinates in the lon and both of latitude coordinates in the lat, respectively. The df variable will be to combine the lon and lat to make the exact coordinates on the map.
 
 
-```{r}
+```{r chunk_satellitelonlatdf}
 lon <- c(-80.144,-80.109)
 lat <- c(26.479, 26.830)
 df <- as.data.frame(cbind(lon,lat))
 ```
- If you run df you can double check to make sure your coordinates are added correctly. It should combine both coordinates. 
+
+If you run df you can double check to make sure your coordinates are added correctly. 
  
  
-```{r}
+```{r chunk_satellitedf}
 head(df)
 ```
 
+#Satellie Map: Retreiving satellite map image
 
-Now we need to retrive the map. The map will be the center of the coordinates. The mean of the df and lat and df and lon is the command to make the map centered. We will have to experiment with the zoom and scale to see what we prefer.
+Now we need to retrieve the satellite map image. The map will be the center of the coordinates of df data frame. The mean of the latitude and longitude of the df data frame, is the command to make the map centered. We will have to experiment with the zoom and scale to see what we prefer.
 
-```{r, results="hide"}
+```{r chunk_satellitemapimage, results="hide"}
 fl_map <- get_map(location = c(lon = mean(df$lon), lat = mean(df$lat)), zoom = 6, maptype = "satellite", scale = 2)
 
 plot(fl_map)
 
 ```
 
-Now to plot the coordinates on the satellite map. We will be using ggmap to do this. It can be done with ggplot+ sf, but has proven to be an easier method to plot the map.
+#Satellite Map: Graphing the satellite map
 
-```{r}
+Now to plot the coordinates on the satellite map. We will be using ggmap to do this. It can be done with ggplot+ sf, but has proven to be an easier method to plot the map with ggmap. 
+
+```{r chunk_satellitemapggmap}
 library(ggmap)
 ```
-We will start off with out ggmap map.
 
-```{r}
+#Satellite Map: Graphing- Base Map
+
+We will start off with out adding our satellite image Florida we previously retreived, to ggmap(). 
+
+```{r chunk_satelliteggmapbasemap}
 ggmap(fl_map)
 ```
 
-Now, we'll be adding the coordinate points. You can always change the color, size, and shape of the point to better suit your map. Since our map will mostly be green and blue, red is a good contrast color.  
+#Satellite Map: Graphing- Coordinate points
 
-```{r}
+Now, we'll be adding the coordinate points of the observation site. You can always change the color, size, and shape of the point to better suit your map. Since our map will mostly be green and blue, red is a good contrast color. The geom_point command requires at least the data argument. Afterward, we use the aes() to create aesthetic features. The aes() requires for both the x and y axis to be specified, which is why we checked the df header labels earlier with head(). The fill of the points is dark red but can be specified to any color. The size is a numeric value, and the shape is a set of predetermined shaped in R studio, which can be easily searched for.
+
+```{r chunk_satellitebasemapandpoints}
 ggmap(fl_map) + 
-  geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.8), size = 3.5, shape = 21)
+  geom_point(data = df, aes(x = lon, y = lat, fill = "darkred"), size = 3.5, shape = 21)
 ```
 
-Next we'll be adding some guides to the map.
+#Satellite Map: Graphing- Removing/Adding Guide
 
-```{r}
+Next we'll be removing the right hand side guides, that was added in the last step. Sometimes you will require a guide, but in this case we are not in need of one.
+
+```{r chunk_satelliteguides}
 ggmap(fl_map) + 
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.8), size = 3.5, shape = 21) +
   guides(fill=FALSE, alpha=FALSE, size=FALSE)
 ```
 
+#Satellite Map: Graphing- Axis Titles
+
 As we previously did, we will be changing the name of lon and lat on the map to Longtitude and Latitude, respectively.
 
-```{r}
+```{r chunk_satelliteaxislabels}
 ggmap(fl_map) + 
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.8), size = 3.5, shape = 21) +
   guides(fill=FALSE, alpha=FALSE, size=FALSE)+
   xlab("Longitude")+ ylab("Latitude")
 ```
 
+#Satellite Map: Graphing- Theme
+
 We will use the same theme as before, but also know that you can create your own theme from scratch to use on the map. We might be going into that at a later time.
 
-```{r}
+```{r chunk_satellitetheme1}
 ggmap(fl_map) + 
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.8), size = 3.5, shape = 21) +
   guides(fill=FALSE, alpha=FALSE, size=FALSE)+
   xlab("Longitude")+ ylab("Latitude")+ theme_classic()
 ```
 
+#Satellite Map: Graphing- Title and Subtitle
+
 And lastly, adding a title and subtitle to the map.
 
-```{r}
+```{r chunk_satellitetitle}
 ggmap(fl_map) + 
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.8), size = 3.5, shape = 21) +
   guides(fill=FALSE, alpha=FALSE, size=FALSE)+
@@ -360,16 +411,17 @@ ggmap(fl_map) +
 
 ```
 
+#Satellite Map: Final notes
 
-Map with Coordinate Points
----
-Melissa Moreno
----
-May 30, 2017
----
+The satellite map created in this tutorial is for a basic map. For your map, more varibles and parameters will need to be added and specified to achieve the look you require to display your information correctly.
+
+
+#Map with Coordinate Points: Introduction
+
 
 For this map, we will be making a basic map with two coordinate points. The coordinate points are our observational sites for wood stork data we collected. In order to do this, we will use similar code from the trajectory map and satellite map. The packages already enabled from the previous tutorials are what we need to create this map. We will still list the packages here for conveneince.
-```{r, results="hide"}
+
+```{r chunk_coordpackages, results="hide"}
 library(sp)
 library (sf)
 library(maps)
@@ -380,113 +432,171 @@ library (rworldxtra)
 library (legendMap)
 ```
 
-Very similar to the wood stork trajectory map, we first need to retreive a map from the package rworldmap and rworldxtra.
+#Map with Coordinate Points: Retreiving world map image
 
-```{r}
+Very similar to the wood stork trajectory map, we first need to retrieve a map from the package 'rworldmap' and 'rworldxtra'. As you have already figured out, we normally start with a very broad map, and then narrow it down to what we are interested in showing. 
+
+```{r chunk_coordgetMap}
 worldmap <- getMap(resolution = "high")
 map1<- sf::st_as_sf(worldmap )
 ```
 
-In this map we require more detail. We are now retrieving the outline for each state.
+#Map with Coordinate Points: Retreiving state map data
 
-```{r}
+In this map with coordinate points we require more detail, since the map will have no features. We would like to add state borders for detail.
+
+```{r chunk_coordgetState}
 states <- map_data("state")
 ```
 
-Now that we have the state border information, we want to check its headings. Before we needed the lon and lat to display our points, lets see if its the same in this case.
+Now that we have the state border outlines, we want to check the headings. Before we needed the lon and lat to display our points, lets see if its the same in this case.
 
 
-```{r}
+```{r chunk_coordheadstates}
 head(states)
 ```
 
-You can observe that the headings are long and lat. This will ensure our state borders will display properly. 
+You can observe that the headings are long and lat. Entering the correct x and y axis names will ensure our state borders will display properly. 
 
-We wanted more detail for the map, so we will add county lines. Depending on what you want to display on your map, you might not want to display county lines.
+#Map with Coordinate Points: Retreiving county map data
+  
+We want more detail for the map, so we will add county lines. Depending on what you want to display on your map, you might not want to display county outlines. 
 
-```{r}
+```{r chunk_coordgetCounty}
 counties <- map_data("county")
 
 ```
 
 Once again we will check the headings of the county lines to make sure they are the same headings as the state borders. 
 
-```{r}
+```{r chunk_coordheadcounties}
 head(counties)
 ```
 
-Looks like everything is lining up correctly, so we can begin to plot.
+#Map with Coordinate Points: Graphing- Base Map
 
-```{r}
+Looks like everything is lining up correctly, so we can begin to plot. We will code very steps that are very similar to the Trajectory Map.
+
+We will first start with adding the base map to our ggplot. As mentioned before we will need to include the data of our map, and you can choose to specify a color. This code is the same as our previous code. A general world map in a dark olive color. 
+
+```{r chunk_coordbasemap}
 ggplot()+
   geom_sf(data=map1, fill= "darkolivegreen3")
 ```
 
+#Map with Coordinate Points: Graphing- Specifying Coordinate Ranges
 
-This code is the same as our previous code. A general world map in a dark olive color.
+The next line of code will allow you to set the coordinates of the map, to "zoom" in the area you are interested in mapping. This will change for every map you make, so it is important to do the head() at the beginning of your code, which will show you the coordinates of your data to give you an idea of where to start. To add this we use 'coord_sf' to create our coordinate parameters. we added our x axis limitations, and y axis limitations. We also chose to make the expansion set to true.
 
 Now lets go to the map coordinates we are more interested in displaying.
 
-```{r}
+```{r chunk_coordmapandcoord}
 ggplot()+
   geom_sf(data=map1, fill= "darkolivegreen3")+
 coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )
 ```
 
-Now that we have the area we are interested in, we can add the county lines we retrieved earlier. The county lines can be modified for different line widths and colors. In this case we used dark green to make the county lines different from the state borders. 
+#Map with Coordinate Points: Graphing- County lines
 
-```{r}
+
+Now that we have the area we are interested in, we can add the county lines we retrieved earlier. The county lines can be modified for different line widths and colors. In this case we used dark green to make the county lines different from the state borders. We use the code 'geom_polygon' to add the polygon lines of the county borders. We previously tried with 'geom_lines', but it was not succesful in creating the county outlines. Once again, the command requires the data for the layer. You can then choose the fill color for the inside of the polygon, and the color of the actual lines of the counties. It can be useful to fill in the counties with varying color, if you think it will add more aethetics to your map. Now the aes() argument reqiures the x and y coordinates of the counties layer. We are also inheriting the previous code aethetics into this layer with inherit.aes=. 
+
+```{r chunk_coordmapcountieslines}
 ggplot()+
   geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
 geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)
 ```
 
-The county lines have been added, so lets add the state borders. We made the borders with black thick lines to really stand out. 
+#Map with Coordinate Points: Graphing- State borders
 
-```{r}
+To continue adding to our map, we will be adding the state borders. We are using the same 'geom_polygon' command, and the arguments used are the same as for county lines. The difference would be to make the color of the outline black, to really stand out, and to make the size thickness of the line slightly thicker than the county lines. 
+ 
+
+```{r chunk_coordmapstatesborder}
 ggplot()+
   geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
 geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
   geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)
 ```
 
-To continue, we will add the coordinate points we used before in the satellite map. The color and shape of the points can be changed to your preference. 
+#Map with Coordinate Points: Graphing- Coordinate points
+
+To add the point coordinates, we will be using similar code used in the Satellite Map. You can see that the x and y variables, for this layer, are different than the x and y variables for the previous layers. The data requirement will need the correct label heading for the x and y axis. 
 
 
-```{r}
+```{r chunk_coordmappoints}
+ggplot()+
+  geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
+geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
+  geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
+  geom_point(data = df, aes(x = lon, y = lat, fill = "darkred"), size = 3.5, shape = 21)
+```
+
+#Map with Coordinate Points: Graphing- Removing/Adding Guide
+
+Next we'll be removing the right hand side guides, that was added in the last step. Sometimes you will require a guide, but in this case we are not in need of one.
+
+```{r chunk_coordmapguides}
+ggplot()+
+  geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
+geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
+  geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
+  geom_point(data = df, aes(x = lon, y = lat, fill = "darkred"), size = 3.5, shape = 21)+
+  guides(fill=FALSE, alpha=FALSE, size=FALSE)
+```
+
+#Map with Coordinate Points: Graphing- Title and Subtitle
+
+We will now add our title and subtitle to the map. This is the same code as the Trajectory Map and Satellite Map. 
+
+```{r chunk_coordmaptitle}
 ggplot()+
   geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
 geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
   geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.9), size = 3.5, shape = 21)+
+  guides(fill=FALSE, alpha=FALSE, size=FALSE)+
   ggtitle ("Wood Stork Observational Sites", subtitle = "2017")
 ```
 
-We will now add our title and subtitle to the map.
+#Map with Coordinate Points: Graphing- Scale Bar and North Symbol
 
-```{r}
+Just like before, we are adding the scale bar to our map using the same base code under the package 'legendMap'. Actual distances will change per map, but you will be able to adjust it accordingly. 
+
+For the scale bar, coordinates have to be speficied in the lon and lat arguments. In the distance_lon argumen it's the shaded in amount your want to specify. Since our map covers large area, 150 km is good distance to use. The distance_unit is normally set to "km". The arrow_length, is the map unit size of the north arrow symbol that will appear behind the N north symbol. The arrow_distance is the distance from the north arrow to the scale. This isn't in miles, it's in map units that 'ggplot2' calculates. The variable arrow_length is also important because we had originally made it equal to 50, but that was so small you couldn't really see it. The finally map unit was 75, which displays it pretty clearly behind the N north symbol. You can choose the size of the N north symbol with arrow_north_size, which is a number starting at 0.1. Our orientation will be true, and the legend_size, which is the size of the numerical values show, wil be a smaller value than the arrow_north_size.
+
+```{r chunk_coordmapscalebar}
 ggplot()+
   geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
 geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
   geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.9), size = 3.5, shape = 21)+
-  ggtitle ("Wood Stork Observational Sites", subtitle = "2017")
-```
-
-
-Just like before, we are adding the scale bar to our map using the same base code under the package legendMap. Actual distances will change per map, but you will be able to adjust it accordingly. 
-
-```{r}
-ggplot()+
-  geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
-geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
-  geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
-  geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.9), size = 3.5, shape = 21)+
+  guides(fill=FALSE, alpha=FALSE, size=FALSE)+
   ggtitle ("Wood Stork Observational Sites", subtitle = "2017")+ 
   scale_bar(lon = -88.66, lat =25,distance_lon = 150, distance_lat = 25, distance_legend = 100, dist_unit = "km", arrow_length=75, arrow_distance=150, arrow_north_size =6, orientation= TRUE,legend_size=2)
 ```
 
+#Map with Coordinate Points: Graphing- Axis Titles
+
+
 Making our map more aesthetically pleasing, we will adding asix titles and themes. Our theme, in this instance, will have dashed gray grid lines, light blue background color, and a black map border. Any of those variables can be adjusted for your map, it just takes some manipulating to see what your map preference is. 
+
+```{r chunk_coordmaptheme}
+ggplot()+
+  geom_sf(data=map1, fill= "darkolivegreen3")+coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand=TRUE )+
+geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, group=group),inherit.aes=TRUE)+
+  geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
+  geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.9), size = 3.5, shape = 21)+
+  guides(fill=FALSE, alpha=FALSE, size=FALSE)+
+  ggtitle ("Wood Stork Observational Sites", subtitle = "2017")+ 
+  scale_bar(lon = -88.66, lat =25,distance_lon = 150, distance_lat = 25, distance_legend = 100, dist_unit = "km", arrow_length=75, arrow_distance=150, arrow_north_size =6, orientation= TRUE,legend_size=2)+ xlab("Longitude")+ ylab("Latitude")+ theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "lightblue"), panel.border=element_rect(fill=NA))
+
+```
+
+#Map with Coordinate Points: Graphing- Map Theme
+
+Now to make the final touches. We want to edit the theme of the map to make it more appealing. We added theme_classic for a standard theme, but there are many other themes that can be selected from. You can experiment adding and removing themes to see which one best suits your map.The argument legend.position, wasn't use since we don't require a legend in our map. Otherwise, such variables such as topright or bottomleft might be used. The panel.grid.major will allow us to edit the grid lines in the map. We chose a gray color, with a line type of dashed to break up the map borders from the grid lines. We wanted to add some color to the map backgraound, which is the ocean essentially, so we changed that with panel.background. We really wanted a border around the map, so the panel.border argument was used to add one . It will take some time to see elements of the theme need to be changed or added to best meet your map needs. 
+
 
 ```{r}
 ggplot()+
@@ -495,9 +605,14 @@ geom_polygon(data=counties, fill= NA, colour= "darkgreen", aes(x=long, y=lat, gr
   geom_polygon(data=states, fill= NA, colour= "black", aes(x=long, y=lat, group=group),inherit.aes=TRUE, size=.76)+
   geom_point(data = df, aes(x = lon, y = lat, fill = "darkred", alpha = 0.9), size = 3.5, shape = 21)+
   ggtitle ("Wood Stork Observational Sites", subtitle = "2017")+ 
-  scale_bar(lon = -88.66, lat =25,distance_lon = 150, distance_lat = 25, distance_legend = 100, dist_unit = "km", arrow_length=75, arrow_distance=150, arrow_north_size =6, orientation= TRUE,legend_size=2)+ xlab("Longitude")+ ylab("Latitude")+ theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "lightblue"), panel.border=element_rect(fill=NA))
+  scale_bar(lon = -88.66, lat =25,distance_lon = 150, distance_lat = 25, distance_legend = 100, dist_unit = "km", arrow_length=75, arrow_distance=150, arrow_north_size =6, orientation= TRUE,legend_size=2)+ xlab("Longitude")+ ylab("Latitude")+ theme_classic()+theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "lightblue"), panel.border=element_rect(fill=NA))
 
 ```
+
+#Map with Coordinate Points: Final notes
+
+This map with coordinate points takes a lot of its code, from the other two maps. You should realize by now that adding layers on ggplot is relatively easy, as long as your data is configured correctly, and your arguments are valid. Depending on what you need for your own maps, you might need or not need some of those commands. 
+
 
 
 
