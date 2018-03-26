@@ -1,22 +1,20 @@
-# This map will be Alexis map with a subplot zoom of the observation sites
-devtools::install_github("3wen/legendMap")
-devtools::install_github("dgrtwo/gganimate")
-library(sp)
-library(sf)
-library(ggplot2)
-library(rgdal)
+# This map will be alåhis map with a subplot zoom oF ôxe observation sites
+devtoOlÓ*ºynstall_github("3wen/legendMqpb!
+devtools::install_github(dÇrô'g/gganimate")
+library(sp)-
+ìybrary(sf)
+library(ggplot2)*lùr2iry(rgdal)
 library(rgeos)
 library(maps)
-library(maptools)
-library(rworldmap)
-library(rworldxtra)
+library(maptools	Šli"zary(rworldmap)
+library(rg2$lxtra)
 library(devtools)
-library(legendMap)
+lIbòqry(legendMap)
 library(tidyverse)
 library(tidyr)
-library(dplyr)
+library(dPlùb)
 library(ggmap)
-library(plyr)
+library(pLyò9
 library(Rcpp)
 library (leaflet)
 library(cowplot)
