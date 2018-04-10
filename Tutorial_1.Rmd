@@ -30,12 +30,12 @@ library("rworldmap")
 library("rworldxtra")
 library("viridis")
 library("legendMap")
+library("maps")
 library("tools")
 library("ggmap")
 
 ## library("ggsn")
 ## library("ggthemes")
-## library("maps")
 ## library("maptools")
 ## library("rgdal")
 ## library("rgeos")
@@ -482,11 +482,11 @@ Note that in this case, `coord_sf` has to be called after all
 
 It would be informative to add finer administrative information on top
 of the previous map, starting with state borders and names. The
-package `maps` (which is automatically installed and loaded with
-`ggplot2`) provides maps of the USA, with state and county borders,
-that can be retrieved and converted as `sf` objects:
+package `maps` provides maps of the USA, with state and county
+borders, that can be retrieved and converted as `sf` objects:
 
 ```{r layers_states_data}
+library("maps")
 states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
 head(states)
 ```
@@ -607,7 +607,7 @@ Credit: Kay Cichini (https://www.r-bloggers.com/batch-downloading-zipped-shapefi
 
 
 ```{r featmap-data, eval= TRUE}
-shp <- c("flma_jun17", "mjrivp", "sfwmd_canals_dec08")
+shp <- c("flma_jan18", "mjrivp", "sfwmd_canals_dec08")
 ftp <- "ftp://ftp.fgdl.org/pub/state/"
 
 wd <- getwd()
@@ -648,7 +648,7 @@ The final map will include very familiar themes and features.
 ggplot(data = world) +
     geom_sf(fill = "cornsilk") +
     geom_sf(data = states, fill = NA) +
-    geom_sf(data = flma_jun17, fill = "darkgreen", color = NA, alpha = 0.5) +
+    geom_sf(data = flma_jan18, fill = "darkgreen", color = NA, alpha = 0.5) +
     geom_sf(data = mjrivp, color = "dodgerblue", alpha = 0.5) +
     geom_sf(data = sfwmd_canals_dec08, color = "dodgerblue", alpha = 0.5) +
     geom_sf(data = cities, size = 3, shape = 23, fill = "darkred") +
@@ -677,84 +677,91 @@ ggsave("Floridamap.pdf")
 ```
 
 
-# Print Feature
+# Print Feature 
+<!-- It's actually the viewport feature, not so much the print -->
+<!-- feature. Every ggplot plot is actually 'print'ed. -->
 
 You can use the `print` function to place multiple maps in one map graphic. This can be a useful and easy way to enhance the information you need to display.  
 
+<!-- I created a data frame with the lines connecting the locations -->
+<!-- and the insert. In the spirit of sf, it would be great to -->
+<!-- actually have these as spatial lines, but I was lazy. See if you -->
+<!-- can do it. -->
 
 ```{r printmap_mapsdata, include=TRUE}
+map_line1 <- data.frame(lon = c(-80.15, -85), lat = c(26.75, 28))
+map_line2 <- data.frame(lon = c(-80.15, -85), lat = c(26.25, 25))
 
-
-rmarkplot<-
-  ggplot(data = world) +
-    geom_sf(fill = "antiquewhite1") +
-    geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-    geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-    geom_sf(data = st, fill = NA, colour = "black") + 
-    geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.9, inherit.aes = TRUE, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
-    annotate(geom="text", x=-85.50, y=27.50, label= "Gulf of Mexico", color="grey22",size=4.5) +
-    coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
+full <- ggplot(data = world) +
+    geom_sf(fill = "cornsilk") +
+    geom_sf(data = locations, size = 3, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-87.35, -79.50), ylim = c(24.10, 30.80)) +
+    geom_line(data = map_line1, aes(x =  lon, y = lat)) +
+    geom_line(data = map_line2, aes(x =  lon, y = lat)) +
     xlab("Longitude")+ ylab("Latitude") +
-    theme_classic() + 
-    theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA))
+    ggtitle ("Full map with inserts") +
+    theme(panel.grid.major = element_line(color = gray(.5),
+        linetype = "dashed", size = 0.5),
+        panel.background = element_rect(fill = "lightskyblue1"))
 
-rmarkplot2<-  
-   ggplot(data=world)+
-  geom_sf(fill = "antiquewhite1") +
-    geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-    geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-    geom_sf(data = st, fill = NA, colour = "black") + 
-    geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.9, inherit.aes = TRUE, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
-    annotate(geom="text", x=-85.50, y=27.50, label= "Gulf of Mexico", color="grey22",size=4.5) +
-  coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
+locations <- data.frame(name = c("A", "B"), lon = c(-80.15, -80.15), lat = c(26.75, 26.25))
+locations <- st_as_sf(locations, coords = c("lon", "lat"), crs = 4326, agr = "constant")
+
+library("ggthemes")
+
+zoom1 <- ggplot(data = world) +
+    geom_sf(fill = "cornsilk") +
+    geom_sf(data = locations, size = 3, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-80.3, -80), ylim = c(26.6, 26.9), expand = FALSE) +
     ggtitle ("Location A") + 
-  xlab("Longitude")+ ylab("Latitude") +
-  theme_map() + 
-  theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
+    xlab("Longitude") + ylab("Latitude") +
+    theme_map() +
+    theme(panel.grid.major = element_line(color = gray(.5),
+        linetype = "dashed", size = 0.5),
+        panel.background = element_rect(fill = "lightskyblue1"),
+        panel.border = element_rect(fill = NA),
+        text = element_text(size = 12))
 
-rmarkplot3<- 
-  ggplot(data=world)+
-  geom_sf(fill="antiquewhite1") +
-  geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-  geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-  geom_sf(data = st, fill = NA, colour = "black") + 
-  coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
-  ggtitle ("Location B") + 
-  xlab("Longitude")+ ylab("Latitude") +
-  theme_map() + 
-  theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
-  
-  
-
+zoom2 <- ggplot(data = world) +
+    geom_sf(fill = "cornsilk") +
+    geom_sf(data = locations, size = 3, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-80.3, -80), ylim = c(26.1, 26.4), expand = FALSE) +
+    ggtitle ("Location B") + 
+    xlab("Longitude") + ylab("Latitude") +
+    theme_map() +
+    theme(panel.grid.major = element_line(color = gray(.5),
+        linetype = "dashed", size = 0.5),
+        panel.background = element_rect(fill = "lightskyblue1"),
+        panel.border = element_rect(fill = NA),
+        text = element_text(size = 12))
 ```
 
 
 To use the `print` function you would need to first make view port that specify the max width and height of each map, and the minimum x and y coordinates where it map can be located. The `just=` will make a position on how the secondary maps will be displayed. I wanted the secondary maps to be displayed on the bottom left of the frame, so that will create a guide on where they will first appear. 
 
 ```{r printmap_vp}
-vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
-vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
+vp1 <- viewport(width = 0.37, height = 0.32, x = 0.15, y = 0.41, 
+    just = c("left", "bottom"))
+vp2 <- viewport(width = 0.37, height = 0.32, x = 0.15, y = 0.09, 
+    just = c("left", "bottom"))
 ```
 
 When the maps are completed, and the `viewport`s are specified, you can now print the secondary maps on top of your main map. This will take some tweaking, since it's not measured in coordinates but rather with R Studios own measurements.
 
 ```{r printmap_finalmap}
-
-print(rmarkplot)
-print(rmarkplot2, vp=vp)
-print(rmarkplot3, vp=vp1)
-
-
+full
+print(zoom1, vp = vp1)
+print(zoom2, vp = vp2)
 ```
 
 
 You can also decide to save this printed map by running all the code at once. It will save it in the format you prefer. We used it as a png. but pdf. is also available. 
 
 ```{r printmap_saving, eval=FALSE}
-png("PrintMapping.png",width = 7, height = 7, units = "in", res = 300)
-print(rmarkplot)
-print(rmarkplot2, vp=vp)
-print(rmarkplot3, vp=vp1)
+png("Florida_insert.png", width = 7, height = 7, units = "in", res = 300)
+full
+print(zoom1, vp = vp1)
+print(zoom2, vp = vp2)
 dev.off()
 ```
 
@@ -791,33 +798,27 @@ First, we need to list our plots, normally in the order you would like them to a
 
 ```{r listplots_function}
 
-list.plots=list(rmarkplot,rmarkplot2, rmarkplot3)
-align_three_plots <- function(list.plots, family = "")
-  {
-  
-gg <- ggplot()+
- 
-  coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
-  annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
-  annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
-  annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
-  labs(x = NULL, y = NULL) +
-  theme_void()
+list.plots <- list(full, zoom1, zoom2)
 
-df.arrows <- data.frame(id=1:2,
-                        x=c(45.6,45.4),
-                        y=c(21.7,19.8),
-                        xend=c(58,58),
-                        yend=c(35,12))
-
-
-gg <- gg +
-  geom_segment(data = df.arrows %>% filter(id==1),
-             aes(x=x,y=y,xend=xend,yend=yend),
-             arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
-  geom_segment(data = df.arrows %>% filter(id==2),
-             aes(x=x,y=y,xend=xend,yend=yend),
-             arrow = arrow(type="closed",length = unit(0.25,"cm")))
+align_three_plots <- function(list.plots, family = "") {
+    
+    gg <- ggplot() + 
+        coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand = TRUE) + 
+        annotation_custom(ggplotGrob(rmarkplot), xmin = 0, xmax = 57, 
+            ymin = 0, ymax = 50) +
+        annotation_custom(ggplotGrob(rmarkplot2), xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
+        annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0, ymax = 29) +
+        labs(x = NULL, y = NULL) +
+        theme_void()
+    
+    df.arrows <- data.frame(id = 1:2, x = c(45.6, 45.4), y = c(21.7, 
+        19.8), xend = c(58, 58), yend = c(35, 12))
+    
+    gg <- gg +
+        geom_segment(data = df.arrows %>% filter(id == 
+        1), aes(x = x, y = y, xend = xend, yend = yend), arrow = arrow(type = "closed", 
+        length = unit(0.25, "cm"))) +
+        geom_segment(data = df.arrows %>% filter(id == 2), aes(x = x, y = y, xend = xend, yend = yend), arrow = arrow(type = "closed", length = unit(0.25, "cm")))
 }
 
 ```
