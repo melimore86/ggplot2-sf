@@ -1,0 +1,39 @@
+Global Choropleth, world interactive, rotating map
+
+http://ellisp.github.io/blog/2017/06/04/military-gdp
+
+
+Ggplotly
+
+http://www.alexejgossmann.com/salaries_by_school_plotly_viz/
+
+
+r studio colors
+
+http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
+
+
+Plotting side by side
+
+https://ikashnitsky.github.io/2017/align-six-maps/
+
+
+Leaflet
+
+https://cengel.github.io/rspatial/4_Mapping.nb.html
+
+Points with gganimate
+http://blog.cultureofinsight.com/2017/06/building-dot-density-maps-with-uk-census-data-in-r/
+
+
+Symobls and points
+http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r
+
+
+Themes
+http://ggplot2.tidyverse.org/reference/theme.html
+
+
+Two graphs with same legend
+
+https://github.com/tidyverse/ggplot2/wiki/share-a-legend-between-two-ggplot2-graphs
