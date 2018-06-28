@@ -1,5 +1,5 @@
 ---
-title: "Positioning maps made with ggplot2+sf"
+title: "Drawing beautiful maps programmatically with R, sf and ggplot2"
 author: "Mel Moreno and Mathieu Basille"
 output:
   html_document:
@@ -13,7 +13,8 @@ output:
     toc_depth: '2'
 ---
 
-```{r global_options, include = FALSE, eval=TRUE}
+
+```{r global_options, include = FALSE}
 knitr::opts_chunk$set(
     results = "hide",
     warning = FALSE, 
@@ -21,390 +22,225 @@ knitr::opts_chunk$set(
     cache = TRUE)
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
-## devtools::install_github("tidyverse/ggplot2")
-## devtools::install_github("3wen/legendMap")
-library(devtools)
-library(ggmap)
-library(ggplot2)
-library(ggthemes)
-library(legendMap)
-library(maps)
-library(maptools)
-library(rgdal)
-library(rgeos)
-library(rworldmap)
-library(rworldxtra)
-library(sf)
-library(sp)
-library(tidyverse)
-library(tools)
-library(dplyr)
-library(cowplot)
-library(gridExtra)
-library(grid)
-library(lattice)
-library(tidyverse)
-library (viridis)
-
-```
-
-# Map placement
-
-
-
-
-```{r featmap_packages, eval=FALSE}
-library(sp)
-library(sf)
-library(ggplot2)
-library(rgdal)
-library(rgeos)
-library(maps)
-library(maptools)
-library(rworldmap)
-library(rworldxtra)
-library(devtools)
-library(legendMap)
-library(tidyverse)
-library(ggmap)
-```
-
-
-```{r pkg-rworldmap, include= FALSE}
+library("devtools")
+library("ggplot2")
+library("sf")
 library("rworldmap")
 library("rworldxtra")
+library("viridis")
+library("legendMap")
+library("tools")
 library("ggmap")
-library("tigris")
-library("sp")
-library("sf")
 
-world <- getMap(resolution = "high")
-world <- st_as_sf(world)
+## library("ggsn")
+## library("ggthemes")
+## library("maps")
+## library("maptools")
+## library("rgdal")
+## library("rgeos")
+## library("rgdal")
+## library("sp")
+## library("tidyverse")
+## library("dplyr")
+```
+
+
+## Adding additional layers: an example with points and polygons
+
+In the previous section, we presented general concepts with a map with little information (country borders only). The modular approach of `ggplot2` allows to successively add additional layers, for instance study sites or administrative delineations, as will be illustrated in this section.
+
+## Point data (`geom_point` and `geom_sf`)
+
+We start by defining two study sites, according to their longitude and latitude, stored in a `data.frame`:
+
+```{r points-sites}
+(sites <- data.frame(longitude = c(-80.144005, -80.109), latitude = c(26.479005, 26.830)))
+```
+
+The easiest way to add point coordinates is with the general-purpose
+function `geom_point`, which works on any X/Y coordinates,
+of regular data points (i.e. not geographic). As such, we can adjust
+all characteristics of points (e.g. color of the outline and the
+filling, shape, size, etc.), for all points, or using grouping from
+the data (i.e defining their "aesthetics"). In this example, we add
+the two points as diamonds (`shape = 23`), filled in dark red (`fill =
+"darkred"`) and of bigger size (`size = 4`):
+
+```{r points-plot}
+ggplot(data = world) +
+    geom_sf() +
+    geom_point(data = sites, aes(x = longitude, y = latitude), size = 2, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+```
+
+A better, more flexible alternative is to use the power of `sf`: Converting the data frame to a `sf` object allows to rely on `sf` to handle on the fly the coordinate system (both projection and extent), which can be very useful if the two objects (here world map, and sites) are not in the same projection. To achieve the same result, the projection (here WGS84) has to be a priori defined in the `sf` object:
+
+```{r points-sf}
+(sites <- st_as_sf(sites, coords = c("longitude", "latitude"), crs = 4326, agr = "constant"))
+
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+```
+
+Note that in this case, `coord_sf` has to be called after all `geom_sf` calls, as to supersede any former input.
+
+## State data (`geom_sf`)
+
+It would be informative to add finer administrative information on top of the previous map, starting with state borders and names. The package `maps` (which is automatically installed and loaded with `ggplot2`) provides maps of the USA, with state and county borders, that can be retrieved and converted as `sf` objects:
+
+```{r coord_getState}
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+head(states)
+```
+
+State names are part of this data, as the `ID` variable. A simple (but not necessarily optimal) to add state name is to compute the centroid of each state polygon as the coordinates where to draw their names. Centroids are computed with the function `st_centroid`, their coordinates extracted with `st_coordinates`, both from the package `sf`, and attached to the state object:
+
+
+```{r coordmap_statenames}
+states <- cbind(states, st_coordinates(st_centroid(states)))
+```
+
+Note the warning, which basically says that centroid coordinates using longitude/latitude data (i.e. WGS84) are not correct, which is perfectly fine for our drawing purposes. State names, which are not capitalized in the data from `maps`, can be changed to title case using the function `toTitleCase` from the package `tools`:
+
+```{r coordmap_capitalizing}
+library("tools")
+states$ID <- toTitleCase(states$ID)
+head(states)
+```
+
+To continue adding to the map, state data is directly plotted as an additional `sf` layer using `geom_sf`. In addition, state names will be added using `geom_text`, declaring coordinates on the X-axis and Y-axis, as well as the label (from `ID`), and a relatively big font size.
+
+
+```{r coord_states}
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
+    geom_sf(data = states, fill = NA) + 
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
+    geom_text(data = states, aes(X, Y, label = ID), size = 5)
+
+```
+
+## County data (`geom_sf`)
+
+County data are also available from the package `maps`, and can be retrieved with the same approach as for state data. This time, only counties from Florida are retained:
+
+```{r coord_county}
+counties <- st_as_sf(map("county", plot = FALSE, fill = TRUE))
+counties <- subset(counties, grepl("florida", counties$ID))
+head(counties)
+```
+
+
+County lines can now be added in a very simple way, using a gray outline:
+
+```{r county_line}
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
+    geom_sf(data = counties, fill = NA, color = gray(.5)) +
+    geom_sf(data = states, fill = NA) + 
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
+    geom_text(data = states, aes(X, Y, label = ID), size = 5)
+
+```
+
+## City names 
+
+We would like to add the main Florida cities to our map, as opposed to all of the cities in Florida because it might make it look very cluttered. You can use this general code for any city in the United States. You could change the region to the state name, which is lowercase. The function `geocode` requires the package `ggmap` .
+
+```{r featmap_cities}
+library(ggmap)
 
 flcities <- data.frame(State=rep("florida",7), 
                          City=c("Miami", "Fort Lauderdale", "Orlando", "Gainesville", "Tallahassee", "Tampa","Jacksonville"))
 
 flcities<-cbind(geocode(as.character(flcities$City)),flcities)
-st <- states(resolution = "20m", class="sf")
-st <- st_transform(st, crs=4326)
+
+```
+
+## Final map
+For the final map, the same color theme as before is used, state names are slightly adjusted (using the argument `nudge_y` to move them South) and plotted in filled boxes, and titles, subtitles, axis labels, and a scale bar are added to the map:
+
+```{r coormap_final}
+
+ggplot(data = world) +
+    geom_sf(fill = "cornsilk") +
+    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
+    geom_sf(data = counties, fill = NA, color = gray(.5)) +
+    geom_sf(data = states, fill = NA) + 
+  geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.9, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
+    scale_bar(lon = -88.66, lat =25,distance_lon = 150, distance_lat = 25, distance_legend = 100, dist_unit = "km", arrow_length=75, arrow_distance=150, arrow_north_size =6, orientation= TRUE,legend_size=2) +
+    geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", nudge_y = -.5) +
+    xlab("Longitude") + ylab("Latitude") +
+    ggtitle ("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
+    theme(panel.grid.major = element_line(color = gray(.5),
+        linetype = "dashed", size = 0.5),
+        panel.background = element_rect(fill = "lightskyblue1"))
 
 ```
 
 
-# Print Feature
+This example fully demonstrates that adding layers on `ggplot2` is relatively straightforward, as long as the data is properly stored in an `sf` object. Adding additional layers would simply follow the same logic, with additional calls to `geom_sf` at the right place in the `ggplot2` sequence.
 
-You can use the `print` function to place multiple maps in one map graphic. This can be a useful and easy way to enhance the information you need to display.  
+## Saving with ggsave
 
+The final map now ready, it would be a good idea to save it. Using `ggsave` will allow a graphic to be saved in a variety of formats, including the most common PNG (raster bitmap) and PDF (vector graphics):
 
-```{r printmap_mapsdata, include=FALSE}
-
-  rmarkplot<-
-  
-  ggplot(data = world) +
-    geom_sf(fill = "antiquewhite1") +
-    #geom_sf(data = flstparks2, colour = "forestgreen", fill = "forestgreen") +
-    #geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-    #geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-    #geom_sf(data = flhighway2, col = "grey50", size = 0.65) +
-    geom_sf(data = st, fill = NA, colour = "black") + 
-    geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.0, inherit.aes = TRUE, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
-    annotate(geom="text", x=-85.50, y=27.50, label= "Gulf of Mexico", color="grey22",size=4.5) +
-    coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
-    xlab("Longitude")+ ylab("Latitude") +
-    theme_classic() + 
-    theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA))
-
-rmarkplot2<-  
-  
-  ggplot(data=world) + 
-  geom_sf(fill="antiquewhite1") +
-  #geom_sf(data = flstparks2, colour = "forestgreen", fill = "forestgreen") +
-  #geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-  #geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-  #geom_sf(data = flhighway2, col = "grey50", size = 0.65) +
-  geom_sf(data = st, fill = NA, colour = "black") + 
-  coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
-    ggtitle ("Location A") + 
-  xlab("Longitude")+ ylab("Latitude") +
-  theme_map() + 
-  theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
-
-rmarkplot3<- 
-  ggplot(data=world)+
-  geom_sf(fill="antiquewhite1") +
-  #geom_sf(data = flstparks2, colour = "forestgreen", fill = "forestgreen") +
-  #geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-  #geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-  #geom_sf(data = flhighway2, col = "grey50", size = 0.65) +
-  geom_sf(data = st, fill = NA, colour = "black") + 
-  coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
-  ggtitle ("Location B") + 
-  xlab("Longitude")+ ylab("Latitude") +
-  theme_map() + 
-  theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
-  
-  
-
+```{r featmap_ggsave, eval=FALSE}
+ggsave("Floridamap.png")
+ggsave("Floridamap.pdf")
 ```
 
+# Helpful Resources
 
-To use the print function you would need to first make view port that specify the max width and height of each map, and the minimum x and y coordinates where it map can be located. The `just=` will make a position on how the secondary maps will be displayed. I wanted the secondary maps to be displayed on the bottom left of the frame, so that will create a guide on where they will first appear. 
+## PDFs for packages
 
-```{r printmap_vp}
-vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
-vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
-```
+-ggplot2 https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf http://ggplot2.tidyverse.org/reference/stat_ecdf.html
 
-When the maps are completed, and the `viewport`s are specified, you can now print the secondary maps on top of your main map. This will take some tweeking, since it's not measured in coordinates but rather with R Studios own measurements. 
+-sf https://cran.r-project.org/web/packages/sf/sf.pdf
 
-```{r printmap_finalmap}
+-sp https://cran.r-project.org/web/packages/sp/sp.pdf
 
-print(rmarkplot)
-print(rmarkplot2, vp=vp)
-print(rmarkplot3, vp=vp1)
+-CRAN https://cran.r-project.org/
 
+-Viridis Color Palettes https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
 
-```
+-Scale Bar https://rdrr.io/github/3wen/legendMap/man/scale_bar.html
 
-
-You can also decide to save this printed map by running all the code at once. It will save it in the format you prefer. We used it as a png. but pdf. is also available. 
-
-```{r printmap_saving, eval=FALSE}
-png("PrintMapping.png",width = 7, height = 7, units = "in", res = 300)
-print(rmarkplot)
-print(rmarkplot2, vp=vp)
-print(rmarkplot3, vp=vp1)
-dev.off()
-```
-
-
-# Multiple Maps in one window
-
-## Introduction
-
-Having a way to emphasize locations on a map can also be a graphic that would be useful for biologists. The next steps will be to create blank sqaure plots that will make your map visualization interesting and accurate. In our map, we will zooming into two different locations in Florida, for a close up of the area using the map we previously built. 
-
-First we will start with the overall packages needed to build this 
-
-Credit to Ilya Kashnitsky (https://ikashnitsky.github.io/2017/align-six-maps/).
-
-```{r listplot_packages, eval=FALSE}
-library(sp)
-library(sf)
-library(ggplot2)
-library(cowplot)
-library(ggthemes)
-library(gridExtra)
-library(grid)
-library(lattice)
-library(tidyverse)
-```
-
-
-## Map Placement Function 
- The function below will allow us to grab plots that we have previously made, with `ggplotGrob` , and create arrows pointing to the maps. 
- 
-First we need to list our plots, normally in the order you would like them to appear. We have create 
-
-```{r listplots_function}
-
-list.plots=list(rmarkplot,rmarkplot2, rmarkplot3)
-align_three_plots <- function(list.plots, family = "")
-  {
-  
-gg <- ggplot()+
- 
-  coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
-  annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
-  annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
-  annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
-  labs(x = NULL, y = NULL) +
-  theme_void()
-
-
-
-#DF with the coordinates of the 2 arrows
-df.arrows <- data.frame(id=1:2,
-                        x=c(45.6,45.4),
-                        y=c(21.7,19.8),
-                        xend=c(58,58),
-                        yend=c(35,12))
-
-
-gg <- gg +
-  geom_segment(data = df.arrows %>% filter(id==1),
-             aes(x=x,y=y,xend=xend,yend=yend),
-             arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
-  geom_segment(data = df.arrows %>% filter(id==2),
-             aes(x=x,y=y,xend=xend,yend=yend),
-             arrow = arrow(type="closed",length = unit(0.25,"cm")))
-}
-
-```
-
-
-## Creating a Simple Empty Square Plot
-
-The next code will allow up to make a simple empty square plot, that can be cloned so we can place our maps inside. We are only using 
-
-```{r listplot_blankplot}
-
-library("ggthemes")
-
-p <- 
-  ggplot()+
-  theme_map() +
-  theme(panel.border = element_rect(color = "black", size = 0.5, fill = NA),aspect.ratio = 1)
-
-```
-
-## Cloning and Final Map 
-
-```{r}
-
-library("tidyverse")
-
-plots <- mget(rep("p", 3))
-
-three<- align_three_plots(plots)
-
-plot(three)
-```
-
-## Maps with legend inbetween
-
-
-```{r}
-
-LegendMap<-
-  ggplot(data = world) +
-  geom_sf(aes(fill=REGION)) +
-  scale_fill_viridis(option="plasma", discrete=TRUE)
-
-Map1<- 
-  ggplot(data = world) +
-  geom_sf(aes(fill=REGION)) +
-  coord_sf(xlim = c(-10.00, 40.00), ylim = c(20.00, 50.00), expand=TRUE) +
-  scale_fill_viridis(option="plasma", discrete=TRUE) +
-  guides(fill=guide_legend(show=FALSE)) +
-  theme_map() +
-  theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
-
-plot(Map1)
-
-Map2<-
-  ggplot(data = world) +
-  geom_sf(aes(fill=REGION)) +
-  coord_sf(xlim = c(-100.00,-60.00 ), ylim = c(20.00, 50.00), expand=TRUE) +
-  scale_fill_viridis(option="plasma", discrete=TRUE) +
-  guides(fill=guide_legend(show=FALSE)) +
-  theme_map() +
-  theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
-
-plot(Map2)
-  
-
-```
-
-
-
-
-
-```{r}
-# Now grabbing the legends from LegendMap map and plotting them in the same window, the x11 is the size of the window I want, the NULL in the plot_grid is to make an empty space where I can later draw the legend with draw_grob
-
-legend <- get_legend(LegendMap+ theme(legend.position="left") )
-
-
-prow <- plot_grid( Map1 + theme(legend.position="none"), 
-                   NULL, Map2 + theme(legend.position="none"),
-                   align = 'vh',
-                   #labels = c("A","", "B" ),
-                   hjust = -1,
-                   nrow = 1,
-                   rel_widths = c(1, .50, 1)
-)
-x11(width=12, height=6, pointsize=10)
-
-prow + draw_grob(legend, 2/4,1/8, 0.003) 
-
-
-```
-
-
-
-
-
-
-
-
-
-# Helpful Resources 
-
-##PDFs for packages
-
--ggplot2 
-https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf
-http://ggplot2.tidyverse.org/reference/stat_ecdf.html
-
--sf
-https://cran.r-project.org/web/packages/sf/sf.pdf
-
--sp
-https://cran.r-project.org/web/packages/sp/sp.pdf
-
--CRAN
-https://cran.r-project.org/
-
--Viridis Color Palettes
-https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
-
--Scale Bar
-https://rdrr.io/github/3wen/legendMap/man/scale_bar.html
-
-##Links and various tutorials
+## Links and various tutorials
 
 -Global Choropleth, world interactive, rotating map
 
 http://ellisp.github.io/blog/2017/06/04/military-gdp
 
-
 -Ggplotly
 
 http://www.alexejgossmann.com/salaries_by_school_plotly_viz/
-
 
 -R studio colors
 
 http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
 
-
 -Plotting side by side
 
 https://ikashnitsky.github.io/2017/align-six-maps/
-
 
 -Leaflet
 
 https://cengel.github.io/rspatial/4_Mapping.nb.html
 
-Points with gganimate
-http://blog.cultureofinsight.com/2017/06/building-dot-density-maps-with-uk-census-data-in-r/
+Points with gganimate http://blog.cultureofinsight.com/2017/06/building-dot-density-maps-with-uk-census-data-in-r/
 
+-Symobls and Points http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r
 
--Symobls and Points
-http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r
-
-
--Themes
-http://ggplot2.tidyverse.org/reference/theme.html
-
+-Themes http://ggplot2.tidyverse.org/reference/theme.html
 
 -Two graphs with same legend
 
 https://github.com/tidyverse/ggplot2/wiki/share-a-legend-between-two-ggplot2-graphs
 
-
-- Downloading Multiple Zipped files
-https://www.r-bloggers.com/batch-downloading-zipped-shapefiles-with-r/
-
+Downloading Multiple Zipped files https://www.r-bloggers.com/batch-downloading-zipped-shapefiles-with-r/
