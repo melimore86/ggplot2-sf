@@ -223,8 +223,8 @@ library("viridis")
 ggplot(data = world) +
     geom_sf() +
     geom_sf(data = counties, aes(fill = area)) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
-    scale_fill_viridis(trans = "sqrt", alpha = .4)
+    scale_fill_viridis(trans = "sqrt", alpha = .4) +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
 ```
 
 
@@ -295,6 +295,7 @@ ggplot(data = world) +
             -0.25, 0.5, 0.5, -0.5)) +
     geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", 
         nudge_y = states$nudge_y) +
+    scale_fill_viridis(trans = "sqrt", alpha = .4) +
     coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
     scale_bar(lon = -88.66, lat = 25, distance_lon = 150, distance_lat = 25, 
         distance_legend = 50, dist_unit = "km", arrow_length = 75, 
@@ -302,7 +303,6 @@ ggplot(data = world) +
         legend_size = 3) +
     xlab("Longitude") + ylab("Latitude") +
     ggtitle("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
-    scale_fill_viridis(trans = "sqrt", alpha = .4) +
     theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
         size = 0.5), panel.background = element_rect(fill = "lightskyblue1"))
 ```

@@ -178,10 +178,10 @@ with "nm", or miles with "mi".
 library("legendMap")
 ggplot(data = world) +
     geom_sf() +
-    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97)) +
     scale_bar(lon = -99.66, lat = 8, distance_lon = 500,
         distance_lat = 50, distance_legend = 100, arrow_length = 300,
-        arrow_north_size = 10)
+        arrow_north_size = 10) +
+    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97))
 ```
 
 
@@ -205,11 +205,11 @@ Additionally, the `annotate` function can be used to add a single character stri
 ```{r world-country}
 ggplot(data = world) +
     geom_sf() +
-    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE) +
     geom_text(aes(LON, LAT, label = NAME), size = 4, hjust = "left", 
         color = "darkblue", fontface = "bold", check_overlap = TRUE) +
     annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
-        fontface = "italic", color = "grey22", size = 6)
+        fontface = "italic", color = "grey22", size = 6) +
+    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE)
 ```
 
 
@@ -225,14 +225,14 @@ Now to make the final touches, the theme of the map can be edited to make it mor
 ```{r world-florida-final}
 ggplot(data = world) +
     geom_sf(fill = "cornsilk") +
-    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE) +
-    scale_bar(lon = -99.66, lat = 8, distance_lon = 500,
-        distance_lat = 50, distance_legend = 100, arrow_length = 300,
-        arrow_north_size = 10) +
     geom_text(aes(LON, LAT, label = NAME), size = 4, hjust = "left",
         color = "darkblue", fontface = "bold", check_overlap = TRUE) +
     annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
         fontface = "italic", color = "grey22", size = 6) +
+    scale_bar(lon = -99.66, lat = 8, distance_lon = 500,
+        distance_lat = 50, distance_legend = 100, arrow_length = 300,
+        arrow_north_size = 10) +
+    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE) +
     xlab("Longitude") + ylab("Latitude") +
     ggtitle("Map of the Gulf of Mexico and the Caribbean Sea") +
     theme(panel.grid.major = element_line(color = gray(.5),
