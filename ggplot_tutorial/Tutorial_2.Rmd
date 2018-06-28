@@ -1,5 +1,5 @@
 ---
-title: "Drawing beautiful maps programmatically with R, sf and ggplot2"
+title: "Drawing beautiful maps programmatically with R, sf and ggplot2 — Part 2: Layers"
 author: "Mel Moreno and Mathieu Basille"
 output:
   html_document:
@@ -16,10 +16,10 @@ output:
 
 ```{r global_options, include = FALSE}
 knitr::opts_chunk$set(
-    results = "hide",
-    warning = FALSE, 
     message = FALSE,
-    cache = TRUE)
+    warning = FALSE,
+    cache = TRUE,
+    tidy = FALSE)
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
 library("devtools")
@@ -27,84 +27,140 @@ library("ggplot2")
 library("sf")
 library("rworldmap")
 library("rworldxtra")
-library("viridis")
-library("legendMap")
+library("maps")
 library("tools")
 library("ggmap")
-
-## library("ggsn")
-## library("ggthemes")
-## library("maps")
-## library("maptools")
-## library("rgdal")
-## library("rgeos")
-## library("rgdal")
-## library("sp")
-## library("tidyverse")
-## library("dplyr")
+library("ggrepel")
 ```
 
+# Beautiful maps in a beautiful world
 
-## Adding additional layers: an example with points and polygons
+Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into simplified complex patterns, <!-- "simplified" or "complex", but not both!-->
+and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and relatable
+context. <!-- My dictionary fails with "relatable"; find something else -->
+Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
+
+Knowing what elements are required to enhance your data is key into making effective maps. Basic elements of a map that should be considered are polygon, points, lines, and text. Polygons, on a map, are closed shapes such as country borders. Lines are considered to be linear shapes that are not filled with any aspect, such as highways, streams, or roads. Finally, points are used to specify specific positions, such as city or landmark locations. With that in mind, one need to think about what elements are required in the map to really make an impact, and convey the information for the intended audience.Layout and formatting are the second critical aspect to enhance data visually. The arrangement of these map elements and how they will be drawn can be adjusted to make a maximum impact.
+
+
+## A solution using R and its ecosystem of packages
+
+Current solutions for creating maps usually involves GIS software, such as ArcGIS, QGIS, eSpatial, etc., which allow to visually prepare a map, in the same approach as one would prepare a poster or a document layout. On the other hand, R, a free and open-source software development environment (IDE) that is used for computing statistical data and graphic in a programmable language, has developed advanced spatial capabilities over the years, and can be used to draw maps programmatically.
+
+R is a powerful and flexible tool. R can be used from calculating data sets to creating graphs and maps with the same data set. R is also free, which makes it easily accessible to anyone. Some other advantages of using R is that it has an interactive language, data structures, graphics availability, a developed community, and the advantage of adding more functionalities through an entire ecosystem of packages. R is a scriptable language that allows the user to write out a code in which it will execute the commands specified.
+
+Using R to create maps brings these benefits to mapping. Elements of a map can be added or removed with ease — R code can be tweaked to make major enhancements with a stroke of a key. It is also easy to reproduce the same maps for different data sets. It is important to be able to script the elements of a map, so that it can be re-used and interpreted by any user. In essence, comparing typical GIS software and R for drawing maps is similar to comparing word processing software (e.g. Microsoft Office or LibreOffice) and a programmatic typesetting system such as LaTeX, in that typical GIS software implement a WYSIWIG approach ("What You See Is What You Get"), while R implements a WYSIWYM approach ("What You See Is What You Mean").
+
+The package `ggplot2` implements the grammar of graphics in R, as a way to create code that make sense to the user: The grammar of graphics is a term used to breaks up graphs into semantic components, such as geometries and layers. Practically speaking, it allows (and forces!) the user to focus on graph elements at a higher level of abstraction, and how the data must be structured to achieve the expected outcome. While `ggplot2` is becoming the de facto standard for R graphs, it does not handle spatial data specifically. The current state-of-the-art of spatial objects in R relies on `Spatial` classes defined in the package [`sp`](https://cran.r-project.org/package=sp), but the new package [`sf`](https://cran.r-project.org/package=sf) has recently implemented the "simple feature" standard, and is steadily taking over `sp`. Recently, the package `ggplot2` has allowed the use of simple features from the package `sf` as layers in a graph. The combination of `ggplot2` and `sf` therefore enables to programmatically create maps, using the grammar of graphics, just as informative or visually appealing as traditional GIS software.
+
+
+## A tutorial to draw beautiful maps programmatically with R, sf and ggplot2
+
+This tutorial is the second part in a series of three:
+
+* General concepts illustrated with the world map
+* Adding additional layers: an example with points and polygons
+* Positioning and layout for complex maps
 
 In the previous section, we presented general concepts with a map with little information (country borders only). The modular approach of `ggplot2` allows to successively add additional layers, for instance study sites or administrative delineations, as will be illustrated in this section.
 
-## Point data (`geom_point` and `geom_sf`)
 
-We start by defining two study sites, according to their longitude and latitude, stored in a `data.frame`:
+## Getting started
 
-```{r points-sites}
-(sites <- data.frame(longitude = c(-80.144005, -80.109), latitude = c(26.479005, 26.830)))
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code. For instance, support of `sf` objects in `ggplot2` is currently only available in the development version of the package[^ggplotsf]. The full list of packages necessary for this tutorial can be installed with:
+
+[^ggplotsf]: Support of `sf` objects is planned to be released in version 2.3.0 of `ggplot2` on CRAN.
+
+```{r pkg-install-all, eval = FALSE}
+install.packages(c("devtools", "ggmap", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra", "viridis"))
+library("devtools")
+install_github("tidyverse/ggplot2")
+install_github("3wen/legendMap")
 ```
 
-The easiest way to add point coordinates is with the general-purpose
-function `geom_point`, which works on any X/Y coordinates,
-of regular data points (i.e. not geographic). As such, we can adjust
-all characteristics of points (e.g. color of the outline and the
-filling, shape, size, etc.), for all points, or using grouping from
-the data (i.e defining their "aesthetics"). In this example, we add
-the two points as diamonds (`shape = 23`), filled in dark red (`fill =
-"darkred"`) and of bigger size (`size = 4`):
+We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
 
-```{r points-plot}
+```{r pkg-ggplot2-sf}
+library("ggplot2")
+theme_set(theme_bw())
+library("sf")
+```
+
+The package `rworldmap` provides a map of countries of the entire world; a map with higher resolution is available in the package `rworldxtra`. We use the function `getMap` to extract the world map (the resolution can be set to `"low"`, if preferred):
+
+```{r pkg-rworldmap}
+library("rworldmap")
+library("rworldxtra")
+world <- getMap(resolution = "high")
+class(world)
+```
+
+The world map is available as a `SpatialPolygonsDataFrame` from the package `sp`; we thus convert it to a simple feature using `st_as_sf` from package `sf`:
+
+```{r world-sf}
+world <- st_as_sf(world)
+class(world)
+```
+
+
+# Adding additional layers: an example with points and polygons
+
+
+## Field sites (point data)
+
+We start by defining two study sites, according to their longitude and latitude, stored in a regular `data.frame`:
+
+```{r sites-sites}
+(sites <- data.frame(longitude = c(-80.144005, -80.109), latitude = c(26.479005, 
+    26.83)))
+```
+
+The quickest way to add point coordinates is with the general-purpose function `geom_point`, which works on any X/Y coordinates, of regular data points (i.e. not geographic). As such, we can adjust all characteristics of points (e.g. color of the outline and the filling, shape, size, etc.), for all points, or using grouping from the data (i.e defining their "aesthetics"). In this example, we add the two points as diamonds (`shape = 23`), filled in dark red (`fill = "darkred"`) and of bigger size (`size = 4`):
+
+```{r sites-plot}
 ggplot(data = world) +
     geom_sf() +
-    geom_point(data = sites, aes(x = longitude, y = latitude), size = 2, shape = 23, fill = "darkred") +
+    geom_point(data = sites, aes(x = longitude, y = latitude), size = 4, 
+        shape = 23, fill = "darkred") +
     coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
 ```
 
-A better, more flexible alternative is to use the power of `sf`: Converting the data frame to a `sf` object allows to rely on `sf` to handle on the fly the coordinate system (both projection and extent), which can be very useful if the two objects (here world map, and sites) are not in the same projection. To achieve the same result, the projection (here WGS84) has to be a priori defined in the `sf` object:
+A better, more flexible alternative is to use the power of `sf`: Converting the data frame to a `sf` object allows to rely on `sf` to handle on the fly the coordinate system (both projection and extent), which can be very useful if the two objects (here world map, and sites) are not in the same projection. To achieve the same result, the projection (here WGS84, which is the CRS code #4326) has to be a priori defined in the `sf` object:
 
-```{r points-sf}
-(sites <- st_as_sf(sites, coords = c("longitude", "latitude"), crs = 4326, agr = "constant"))
+```{r sites-sf-create}
+(sites <- st_as_sf(sites, coords = c("longitude", "latitude"), 
+    crs = 4326, agr = "constant"))
+```
 
+```{r sites-sf-plot}
 ggplot(data = world) +
     geom_sf() +
-    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
+    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
     coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
 ```
 
-Note that in this case, `coord_sf` has to be called after all `geom_sf` calls, as to supersede any former input.
+Note that `coord_sf` has to be called after all `geom_sf` calls, as to supersede any former input.
 
-## State data (`geom_sf`)
+
+## States (polygon data)
 
 It would be informative to add finer administrative information on top of the previous map, starting with state borders and names. The package `maps` (which is automatically installed and loaded with `ggplot2`) provides maps of the USA, with state and county borders, that can be retrieved and converted as `sf` objects:
 
-```{r coord_getState}
+```{r states}
+library("maps")
 states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
 head(states)
 ```
 
-State names are part of this data, as the `ID` variable. A simple (but not necessarily optimal) to add state name is to compute the centroid of each state polygon as the coordinates where to draw their names. Centroids are computed with the function `st_centroid`, their coordinates extracted with `st_coordinates`, both from the package `sf`, and attached to the state object:
+State names are part of this data, as the `ID` variable. A simple (but not necessarily optimal) way to add state name is to compute the centroid of each state polygon as the coordinates where to draw their names. Centroids are computed with the function `st_centroid`, their coordinates extracted with `st_coordinates`, both from the package `sf`, and attached to the state object:
 
-
-```{r coordmap_statenames}
+```{r states-centroids}
 states <- cbind(states, st_coordinates(st_centroid(states)))
 ```
 
-Note the warning, which basically says that centroid coordinates using longitude/latitude data (i.e. WGS84) are not correct, which is perfectly fine for our drawing purposes. State names, which are not capitalized in the data from `maps`, can be changed to title case using the function `toTitleCase` from the package `tools`:
+Note the warning, which basically says that centroid coordinates using longitude/latitude data (i.e. WGS84) are not exact, which is perfectly fine for our drawing purposes. State names, which are not capitalized in the data from `maps`, can be changed to title case using the function `toTitleCase` from the package `tools`:
 
-```{r coordmap_capitalizing}
+```{r states-id}
 library("tools")
 states$ID <- toTitleCase(states$ID)
 head(states)
@@ -112,135 +168,143 @@ head(states)
 
 To continue adding to the map, state data is directly plotted as an additional `sf` layer using `geom_sf`. In addition, state names will be added using `geom_text`, declaring coordinates on the X-axis and Y-axis, as well as the label (from `ID`), and a relatively big font size.
 
-
-```{r coord_states}
+```{r states-plot}
 ggplot(data = world) +
     geom_sf() +
-    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
     geom_sf(data = states, fill = NA) + 
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
-    geom_text(data = states, aes(X, Y, label = ID), size = 5)
-
+    geom_text(data = states, aes(X, Y, label = ID), size = 5) +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
 ```
 
-## County data (`geom_sf`)
+We can move the text slightly to be able to read better "South Carolina" and "Florida". For this, we create a new variable `nudge_y`, which is 0 for all states, 0.5 for Florida (moved slightly North), and -0.5 for South Carolina (slightly moved South):
 
-County data are also available from the package `maps`, and can be retrieved with the same approach as for state data. This time, only counties from Florida are retained:
+```{r states-nudge}
+states$nudge_y <- 0
+states$nudge_y[states$ID == "Florida"] <- 0.5
+states$nudge_y[states$ID == "South Carolina"] <- -0.5
+```
 
-```{r coord_county}
+To improve readability, we also draw a rectangle behind the state name, using the function `geom_label` instead of `geom_text`, and plot the map again.
+
+```{r states-plot-nudge}
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = states, fill = NA) + 
+    geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", 
+        nudge_y = states$nudge_y) +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+```
+
+
+## Counties (polygon data)
+
+County data are also available from the package `maps`, and can be retrieved with the same approach as for state data. This time, only counties from Florida are retained, and we compute their area using `st_area` from the package `sf`:
+
+```{r counties}
 counties <- st_as_sf(map("county", plot = FALSE, fill = TRUE))
 counties <- subset(counties, grepl("florida", counties$ID))
+counties$area <- as.numeric(st_area(counties))
 head(counties)
 ```
 
-
 County lines can now be added in a very simple way, using a gray outline:
 
-```{r county_line}
+```{r counties-plot}
 ggplot(data = world) +
     geom_sf() +
-    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
     geom_sf(data = counties, fill = NA, color = gray(.5)) +
-    geom_sf(data = states, fill = NA) + 
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+```
+
+We can also fill in the county using their area to visually identify the largest counties. For this, we use the natural Viridis palette from the package of the same name, with some transparency:
+
+```{r counties-plot-scale}
+library("viridis")
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = counties, aes(fill = area)) +
     coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
-    geom_text(data = states, aes(X, Y, label = ID), size = 5)
-
+    scale_fill_viridis(trans = "sqrt", alpha = .4)
 ```
 
-## City names 
 
-We would like to add the main Florida cities to our map, as opposed to all of the cities in Florida because it might make it look very cluttered. You can use this general code for any city in the United States. You could change the region to the state name, which is lowercase. The function `geocode` requires the package `ggmap` .
+## Cities (point data)
 
-```{r featmap_cities}
-library(ggmap)
+To make a more complete map of Florida, main cities will be added to the map. The package `ggmap` provides a function `geocode`, which allows to retrieve geographic coordinates for all cities in the United States, based on their names, using a service from Google Maps. We extract coordinates for the five largest cities in the state of Florida:
 
-flcities <- data.frame(State=rep("florida",7), 
-                         City=c("Miami", "Fort Lauderdale", "Orlando", "Gainesville", "Tallahassee", "Tampa","Jacksonville"))
-
-flcities<-cbind(geocode(as.character(flcities$City)),flcities)
-
+```{r cities-eval, echo = FALSE}
+library("ggmap")
+flcities <- data.frame(State = rep("Florida", 5), City = c("Miami", 
+    "Tampa", "Orlando", "Jacksonville", "Sarasota"))
+flcities <- cbind(geocode(as.character(flcities$City), force = TRUE), flcities)
+(flcities <- st_as_sf(flcities, coords = c("lon", "lat"), remove = FALSE, 
+    crs = 4326, agr = "constant"))
 ```
 
-## Final map
-For the final map, the same color theme as before is used, state names are slightly adjusted (using the argument `nudge_y` to move them South) and plotted in filled boxes, and titles, subtitles, axis labels, and a scale bar are added to the map:
+```{r cities-echo, eval = FALSE}
+library("ggmap")
+flcities <- data.frame(State = rep("Florida", 5), City = c("Miami", 
+    "Tampa", "Orlando", "Jacksonville", "Sarasota"))
+flcities <- cbind(geocode(as.character(flcities$City)), flcities)
+geocodeQueryCheck()
+(flcities <- st_as_sf(flcities, coords = c("lon", "lat"), remove = FALSE, 
+    crs = 4326, agr = "constant"))
+```
 
-```{r coormap_final}
+And we add both city locations and names on the map:
 
+```{r cities-plot}
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = counties, fill = NA, color = gray(.5)) +
+    geom_sf(data = flcities) +
+    geom_text(data = flcities, aes(x = lon, y = lat, label = City), 
+        size = 3.9, col = "black", fontface = "bold") +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+```
+
+This is not really satisfactory, as the names overlap on the points, and they are not easy to read on the grey background. The package `ggrepel` offers a very flexible approach to deal with label placement (with `geom_text_repel` and `geom_label_repel`), including automated movement of labels in case of overlap. We use it here to "nudge" the labels away from land into the see, and connect them to the city locations:
+
+```{r cities-plot-nudge}
+library("ggrepel")
+ggplot(data = world) +
+    geom_sf() +
+    geom_sf(data = counties, fill = NA, color = gray(.5)) +
+    geom_sf(data = flcities) +
+    geom_text_repel(data = flcities, aes(x = lon, y = lat, label = City), 
+        fontface = "bold", nudge_x = c(1, -1.5, 2, 2, -1), nudge_y = c(0.25, 
+            -0.25, 0.5, 0.5, -0.5)) +
+    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+```
+
+
+# Final map
+
+For the final map, we put everything together, having a general background map based on the world map, with state and county delineations, state labels, main city names and locations, as well as a theme adjusted with titles, subtitles, axis labels, and a scale bar:
+
+```{r layers-final-plot}
+library("legendMap")
 ggplot(data = world) +
     geom_sf(fill = "cornsilk") +
-    geom_sf(data = sites, size = 2, shape = 23, fill = "darkred") +
-    geom_sf(data = counties, fill = NA, color = gray(.5)) +
+    geom_sf(data = counties, aes(fill = area)) +
     geom_sf(data = states, fill = NA) + 
-  geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.9, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
+    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+    geom_sf(data = flcities) +
+    geom_text_repel(data = flcities, aes(x = lon, y = lat, label = City), 
+        fontface = "bold", nudge_x = c(1, -1.5, 2, 2, -1), nudge_y = c(0.25, 
+            -0.25, 0.5, 0.5, -0.5)) +
+    geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", 
+        nudge_y = states$nudge_y) +
     coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
-    scale_bar(lon = -88.66, lat =25,distance_lon = 150, distance_lat = 25, distance_legend = 100, dist_unit = "km", arrow_length=75, arrow_distance=150, arrow_north_size =6, orientation= TRUE,legend_size=2) +
-    geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", nudge_y = -.5) +
+    scale_bar(lon = -88.66, lat = 25, distance_lon = 150, distance_lat = 25, 
+        distance_legend = 50, dist_unit = "km", arrow_length = 75, 
+        arrow_distance = 150, arrow_north_size = 6, orientation = TRUE, 
+        legend_size = 3) +
     xlab("Longitude") + ylab("Latitude") +
-    ggtitle ("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
-    theme(panel.grid.major = element_line(color = gray(.5),
-        linetype = "dashed", size = 0.5),
-        panel.background = element_rect(fill = "lightskyblue1"))
-
+    ggtitle("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
+    scale_fill_viridis(trans = "sqrt", alpha = .4) +
+    theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        size = 0.5), panel.background = element_rect(fill = "lightskyblue1"))
 ```
-
 
 This example fully demonstrates that adding layers on `ggplot2` is relatively straightforward, as long as the data is properly stored in an `sf` object. Adding additional layers would simply follow the same logic, with additional calls to `geom_sf` at the right place in the `ggplot2` sequence.
-
-## Saving with ggsave
-
-The final map now ready, it would be a good idea to save it. Using `ggsave` will allow a graphic to be saved in a variety of formats, including the most common PNG (raster bitmap) and PDF (vector graphics):
-
-```{r featmap_ggsave, eval=FALSE}
-ggsave("Floridamap.png")
-ggsave("Floridamap.pdf")
-```
-
-# Helpful Resources
-
-## PDFs for packages
-
--ggplot2 https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf http://ggplot2.tidyverse.org/reference/stat_ecdf.html
-
--sf https://cran.r-project.org/web/packages/sf/sf.pdf
-
--sp https://cran.r-project.org/web/packages/sp/sp.pdf
-
--CRAN https://cran.r-project.org/
-
--Viridis Color Palettes https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
-
--Scale Bar https://rdrr.io/github/3wen/legendMap/man/scale_bar.html
-
-## Links and various tutorials
-
--Global Choropleth, world interactive, rotating map
-
-http://ellisp.github.io/blog/2017/06/04/military-gdp
-
--Ggplotly
-
-http://www.alexejgossmann.com/salaries_by_school_plotly_viz/
-
--R studio colors
-
-http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
-
--Plotting side by side
-
-https://ikashnitsky.github.io/2017/align-six-maps/
-
--Leaflet
-
-https://cengel.github.io/rspatial/4_Mapping.nb.html
-
-Points with gganimate http://blog.cultureofinsight.com/2017/06/building-dot-density-maps-with-uk-census-data-in-r/
-
--Symobls and Points http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r
-
--Themes http://ggplot2.tidyverse.org/reference/theme.html
-
--Two graphs with same legend
-
-https://github.com/tidyverse/ggplot2/wiki/share-a-legend-between-two-ggplot2-graphs
-
-Downloading Multiple Zipped files https://www.r-bloggers.com/batch-downloading-zipped-shapefiles-with-r/
