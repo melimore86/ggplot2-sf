@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
     tidy = FALSE)
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
-library("devtools")
+## Tutorial #1
 library("ggplot2")
 library("sf")
 library("rworldmap")
@@ -66,15 +66,14 @@ In this section, we will cover the fundamentals of mapping using `ggplot2` assoc
 
 ## Getting started
 
-Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code. For instance, support of `sf` objects in `ggplot2` is currently only available in the development version of the package[^ggplotsf]. The full list of packages necessary for this tutorial can be installed with:
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. For instance, support of `sf` objects in `ggplot2` is currently only available in the development version of the package[^ggplotsf]. The full list of packages necessary for this tutorial can be installed with:
 
 [^ggplotsf]: Support of `sf` objects is planned to be released in version 2.3.0 of `ggplot2` on CRAN.
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("devtools", "ggmap", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra", "viridis"))
-library("devtools")
-install_github("tidyverse/ggplot2")
-install_github("3wen/legendMap")
+install.packages(c("remotes", "ggmap", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra", "viridis"))
+remotes::install_github("tidyverse/ggplot2")
+remotes::install_github("3wen/legendMap")
 ```
 
 We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
