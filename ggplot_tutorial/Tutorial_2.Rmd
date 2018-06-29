@@ -29,8 +29,10 @@ library("rworldmap")
 library("rworldxtra")
 library("maps")
 library("tools")
+library("viridis")
 library("ggmap")
 library("ggrepel")
+library("legendMap")
 ```
 
 # Beautiful maps in a beautiful world
@@ -122,7 +124,7 @@ ggplot(data = world) +
     geom_sf() +
     geom_point(data = sites, aes(x = longitude, y = latitude), size = 4, 
         shape = 23, fill = "darkred") +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 A better, more flexible alternative is to use the power of `sf`: Converting the data frame to a `sf` object allows to rely on `sf` to handle on the fly the coordinate system (both projection and extent), which can be very useful if the two objects (here world map, and sites) are not in the same projection. To achieve the same result, the projection (here WGS84, which is the CRS code #4326) has to be a priori defined in the `sf` object:
@@ -136,7 +138,7 @@ A better, more flexible alternative is to use the power of `sf`: Converting the 
 ggplot(data = world) +
     geom_sf() +
     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 Note that `coord_sf` has to be called after all `geom_sf` calls, as to supersede any former input.
@@ -173,15 +175,15 @@ ggplot(data = world) +
     geom_sf() +
     geom_sf(data = states, fill = NA) + 
     geom_text(data = states, aes(X, Y, label = ID), size = 5) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
-We can move the text slightly to be able to read better "South Carolina" and "Florida". For this, we create a new variable `nudge_y`, which is 0 for all states, 0.5 for Florida (moved slightly North), and -0.5 for South Carolina (slightly moved South):
+We can move the state names slightly to be able to read better "South Carolina" and "Florida". For this, we create a new variable `nudge_y`, which is -1 for all states (moved slightly South), 0.5 for Florida (moved slightly North), and -1.5 for South Carolina (moved further South):
 
 ```{r states-nudge}
-states$nudge_y <- 0
+states$nudge_y <- -1
 states$nudge_y[states$ID == "Florida"] <- 0.5
-states$nudge_y[states$ID == "South Carolina"] <- -0.5
+states$nudge_y[states$ID == "South Carolina"] <- -1.5
 ```
 
 To improve readability, we also draw a rectangle behind the state name, using the function `geom_label` instead of `geom_text`, and plot the map again.
@@ -192,7 +194,7 @@ ggplot(data = world) +
     geom_sf(data = states, fill = NA) + 
     geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", 
         nudge_y = states$nudge_y) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 
@@ -213,7 +215,7 @@ County lines can now be added in a very simple way, using a gray outline:
 ggplot(data = world) +
     geom_sf() +
     geom_sf(data = counties, fill = NA, color = gray(.5)) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 We can also fill in the county using their area to visually identify the largest counties. For this, we use the natural Viridis palette from the package of the same name, with some transparency:
@@ -224,7 +226,7 @@ ggplot(data = world) +
     geom_sf() +
     geom_sf(data = counties, aes(fill = area)) +
     scale_fill_viridis(trans = "sqrt", alpha = .4) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 
@@ -236,7 +238,12 @@ To make a more complete map of Florida, main cities will be added to the map. Th
 library("ggmap")
 flcities <- data.frame(State = rep("Florida", 5), City = c("Miami", 
     "Tampa", "Orlando", "Jacksonville", "Sarasota"))
-flcities <- cbind(geocode(as.character(flcities$City), force = TRUE), flcities)
+geocodeQueryCheck()
+flcoords <- do.call(rbind, lapply(1:nrow(flcities), function(i) {
+    Sys.sleep(3)
+    geocode(paste(flcities$City[i], flcities$State[i], sep = ", "))
+}))
+flcities <- cbind(flcoords, flcities)
 (flcities <- st_as_sf(flcities, coords = c("lon", "lat"), remove = FALSE, 
     crs = 4326, agr = "constant"))
 ```
@@ -245,8 +252,7 @@ flcities <- cbind(geocode(as.character(flcities$City), force = TRUE), flcities)
 library("ggmap")
 flcities <- data.frame(State = rep("Florida", 5), City = c("Miami", 
     "Tampa", "Orlando", "Jacksonville", "Sarasota"))
-flcities <- cbind(geocode(as.character(flcities$City)), flcities)
-geocodeQueryCheck()
+flcities <- cbind(geocode(paste(flcities$City, flcities$State, sep = ", ")), flcities)
 (flcities <- st_as_sf(flcities, coords = c("lon", "lat"), remove = FALSE, 
     crs = 4326, agr = "constant"))
 ```
@@ -260,7 +266,7 @@ ggplot(data = world) +
     geom_sf(data = flcities) +
     geom_text(data = flcities, aes(x = lon, y = lat, label = City), 
         size = 3.9, col = "black", fontface = "bold") +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 This is not really satisfactory, as the names overlap on the points, and they are not easy to read on the grey background. The package `ggrepel` offers a very flexible approach to deal with label placement (with `geom_text_repel` and `geom_label_repel`), including automated movement of labels in case of overlap. We use it here to "nudge" the labels away from land into the see, and connect them to the city locations:
@@ -274,7 +280,7 @@ ggplot(data = world) +
     geom_text_repel(data = flcities, aes(x = lon, y = lat, label = City), 
         fontface = "bold", nudge_x = c(1, -1.5, 2, 2, -1), nudge_y = c(0.25, 
             -0.25, 0.5, 0.5, -0.5)) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE)
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
 ```
 
 
@@ -296,10 +302,10 @@ ggplot(data = world) +
     geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", 
         nudge_y = states$nudge_y) +
     scale_fill_viridis(trans = "sqrt", alpha = .4) +
-    coord_sf(xlim = c(-89.15, -76.12), ylim = c(24.65, 33.97), expand = FALSE) +
-    scale_bar(lon = -88.66, lat = 25, distance_lon = 150, distance_lat = 25, 
+    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE) +
+    scale_bar(lon = -87.5, lat = 25, distance_lon = 150, distance_lat = 25, 
         distance_legend = 50, dist_unit = "km", arrow_length = 75, 
-        arrow_distance = 150, arrow_north_size = 6, orientation = TRUE, 
+        arrow_distance = 100, arrow_north_size = 6, orientation = TRUE, 
         legend_size = 3) +
     xlab("Longitude") + ylab("Latitude") +
     ggtitle("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
