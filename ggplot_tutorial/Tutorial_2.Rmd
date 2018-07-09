@@ -38,9 +38,9 @@ library("ggrepel")
 
 # Beautiful maps in a beautiful world
 
-Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into simplified complex patterns, <!-- "simplified" or "complex", but not both!-->
-and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and relatable
-context. <!-- My dictionary fails with "relatable"; find something else -->
+Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into complex patterns, 
+and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable
+context.
 Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
 
 Knowing what elements are required to enhance your data is key into making effective maps. Basic elements of a map that should be considered are polygon, points, lines, and text. Polygons, on a map, are closed shapes such as country borders. Lines are considered to be linear shapes that are not filled with any aspect, such as highways, streams, or roads. Finally, points are used to specify specific positions, such as city or landmark locations. With that in mind, one need to think about what elements are required in the map to really make an impact, and convey the information for the intended audience.Layout and formatting are the second critical aspect to enhance data visually. The arrangement of these map elements and how they will be drawn can be adjusted to make a maximum impact.

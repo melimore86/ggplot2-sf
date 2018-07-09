@@ -49,11 +49,10 @@ library (viridis)
 ```
 
 # Map placement
+Depending on the visual information that needs to be displayed, maps and their corresponding data might need to be arrange to create easy to read graphical representations. This can be a very useful tools for publications or presentations. Sometimes adding a slightly different placement to a map, will make the information portrayed more aesthetically appealing. 
 
 
-
-
-```{r featmap_packages, eval=FALSE}
+```{r mappackages, eval=FALSE}
 library(sp)
 library(sf)
 library(ggplot2)
@@ -88,24 +87,26 @@ flcities<-cbind(geocode(as.character(flcities$City)),flcities)
 st <- states(resolution = "20m", class="sf")
 st <- st_transform(st, crs=4326)
 
+sites <- data.frame(longitude = c(-80.144005, -80.109), latitude = c(26.479005, 
+    26.83))
+
+sites <- st_as_sf(sites, coords = c("longitude", "latitude"), 
+    crs = 4326, agr = "constant")
+
 ```
 
 
 # Print Feature
 
-You can use the `print` function to place multiple maps in one map graphic. This can be a useful and easy way to enhance the information you need to display.  
+The `print` command can be used place multiple maps in one map graphic. Essentially the `print` command This can be a useful and easy way to enhance the information you need to display.  
 
 
-```{r printmap_mapsdata, include=FALSE}
+```{r print_mapsdata, include=FALSE}
 
   rmarkplot<-
-  
-  ggplot(data = world) +
+   ggplot(data = world) +
     geom_sf(fill = "antiquewhite1") +
-    #geom_sf(data = flstparks2, colour = "forestgreen", fill = "forestgreen") +
-    #geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-    #geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-    #geom_sf(data = flhighway2, col = "grey50", size = 0.65) +
+    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
     geom_sf(data = st, fill = NA, colour = "black") + 
     geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.0, inherit.aes = TRUE, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
     annotate(geom="text", x=-85.50, y=27.50, label= "Gulf of Mexico", color="grey22",size=4.5) +
@@ -115,13 +116,9 @@ You can use the `print` function to place multiple maps in one map graphic. This
     theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA))
 
 rmarkplot2<-  
-  
   ggplot(data=world) + 
   geom_sf(fill="antiquewhite1") +
-  #geom_sf(data = flstparks2, colour = "forestgreen", fill = "forestgreen") +
-  #geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-  #geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-  #geom_sf(data = flhighway2, col = "grey50", size = 0.65) +
+  geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
   geom_sf(data = st, fill = NA, colour = "black") + 
   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
     ggtitle ("Location A") + 
@@ -132,10 +129,7 @@ rmarkplot2<-
 rmarkplot3<- 
   ggplot(data=world)+
   geom_sf(fill="antiquewhite1") +
-  #geom_sf(data = flstparks2, colour = "forestgreen", fill = "forestgreen") +
-  #geom_sf(data = flparksandrec2, fill = "darkgreen", colour = "darkgreen", alpha = 0.8) +
-  #geom_sf(data = flmjwater2, fill = "deepskyblue", colour = "deepskyblue", alpha = 0.5) +
-  #geom_sf(data = flhighway2, col = "grey50", size = 0.65) +
+  geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
   geom_sf(data = st, fill = NA, colour = "black") + 
   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
   ggtitle ("Location B") + 
@@ -148,16 +142,16 @@ rmarkplot3<-
 ```
 
 
-To use the print function you would need to first make view port that specify the max width and height of each map, and the minimum x and y coordinates where it map can be located. The `just=` will make a position on how the secondary maps will be displayed. I wanted the secondary maps to be displayed on the bottom left of the frame, so that will create a guide on where they will first appear. 
+To specify where each plot is displayed with the  `print` function, the arugement `viewport` needs to specify the max width and height of each map, and the minimum x and y coordinates of where the map[s] are located. The `just=` will make a position on how the secondary maps will be displayed. All maps are the same size, until the sizes are adjusted with `width` and `height`.
 
-```{r printmap_vp}
+```{r print_vp}
 vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
 vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
 ```
 
-When the maps are completed, and the `viewport`s are specified, you can now print the secondary maps on top of your main map. This will take some tweeking, since it's not measured in coordinates but rather with R Studios own measurements. 
+Now the `print` function can be used the previous spefications that were listed in each plots' `viewport`. 
 
-```{r printmap_finalmap}
+```{r print_finalmap}
 
 print(rmarkplot)
 print(rmarkplot2, vp=vp)
@@ -166,23 +160,11 @@ print(rmarkplot3, vp=vp1)
 
 ```
 
-
-You can also decide to save this printed map by running all the code at once. It will save it in the format you prefer. We used it as a png. but pdf. is also available. 
-
-```{r printmap_saving, eval=FALSE}
-png("PrintMapping.png",width = 7, height = 7, units = "in", res = 300)
-print(rmarkplot)
-print(rmarkplot2, vp=vp)
-print(rmarkplot3, vp=vp1)
-dev.off()
-```
 
 
 # Multiple Maps in one window
 
-## Introduction
-
-Having a way to emphasize locations on a map can also be a graphic that would be useful for biologists. The next steps will be to create blank sqaure plots that will make your map visualization interesting and accurate. In our map, we will zooming into two different locations in Florida, for a close up of the area using the map we previously built. 
+Having a way to emphasize locations on a map can also be a graphic that would be useful for biologists. The next steps will be to create blank sqaure plots that will make the map visualization interesting and accurate. In the following map, arrows will point to specific locations.
 
 First we will start with the overall packages needed to build this 
 
@@ -202,9 +184,14 @@ library(tidyverse)
 
 
 ## Map Placement Function 
- The function below will allow us to grab plots that we have previously made, with `ggplotGrob` , and create arrows pointing to the maps. 
- 
-First we need to list our plots, normally in the order you would like them to appear. We have create 
+The function below will allow us to grab plots that we have previously made, with `ggplotGrob` , and create arrows pointing to the maps. 
+
+The `list.plots`, is a simple list command to combine all of the previously created plots.
+
+Afterwards, a function is created to create a custom annotation of each plot, with their corresponding x-min and x-max coordinates. From the bottom left corner of the image, it would be considered 0,0 if it was compared to a mathematical graph. 
+
+The `df.arrows` has the beginning and ending locations of each line. If this case, there are two lines, but more lines can be created by adding more starting locations for `x=` and `y=`. 
+
 
 ```{r listplots_function}
 
@@ -212,15 +199,14 @@ list.plots=list(rmarkplot,rmarkplot2, rmarkplot3)
 align_three_plots <- function(list.plots, family = "")
   {
   
-gg <- ggplot()+
- 
+gg <- 
+  ggplot()+
   coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
   annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
   annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
   annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
   labs(x = NULL, y = NULL) +
   theme_void()
-
 
 
 #DF with the coordinates of the 2 arrows
@@ -230,8 +216,8 @@ df.arrows <- data.frame(id=1:2,
                         xend=c(58,58),
                         yend=c(35,12))
 
-
-gg <- gg +
+gg <- 
+  gg +
   geom_segment(data = df.arrows %>% filter(id==1),
              aes(x=x,y=y,xend=xend,yend=yend),
              arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
@@ -245,10 +231,10 @@ gg <- gg +
 
 ## Creating a Simple Empty Square Plot
 
-The next code will allow up to make a simple empty square plot, that can be cloned so we can place our maps inside. We are only using 
+The next code will allow up to make a simple empty square plot, that can be cloned so we can place the maps inside. 
+
 
 ```{r listplot_blankplot}
-
 library("ggthemes")
 
 p <- 
@@ -260,8 +246,9 @@ p <-
 
 ## Cloning and Final Map 
 
-```{r}
+The function `mget` will clone the square plots three times. The `three` is just to combinge the `align_three_plots` function and the repetition plots in one argument. And the final step is to plot the function and the plots together. 
 
+```{r listplot_finalplot}
 library("tidyverse")
 
 plots <- mget(rep("p", 3))
@@ -271,16 +258,19 @@ three<- align_three_plots(plots)
 plot(three)
 ```
 
-## Maps with legend inbetween
+# Maps an legend placement
 
+The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
 
-```{r}
+```{r legendmap}
 
 LegendMap<-
   ggplot(data = world) +
   geom_sf(aes(fill=REGION)) +
   scale_fill_viridis(option="plasma", discrete=TRUE)
+```
 
+```{r legendmap_maps, include=FALSE}
 Map1<- 
   ggplot(data = world) +
   geom_sf(aes(fill=REGION)) +
@@ -289,8 +279,6 @@ Map1<-
   guides(fill=guide_legend(show=FALSE)) +
   theme_map() +
   theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
-
-plot(Map1)
 
 Map2<-
   ggplot(data = world) +
@@ -301,37 +289,29 @@ Map2<-
   theme_map() +
   theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
 
-plot(Map2)
-  
-
 ```
 
+The function `get_legend`, will grab any legend from any `ggplot` map, or graph. In the function `plot_grid`, the maps that were created,  Map1 and Map2, will be plotted with their associated themes. In this case there is no theme or position, but the option is available. The command `rel_widths`, will specify the size of each pane of the `plot_grid`. The legend will be placed in the middle, and requires the largest size. 
 
 
-
-
-```{r}
-# Now grabbing the legends from LegendMap map and plotting them in the same window, the x11 is the size of the window I want, the NULL in the plot_grid is to make an empty space where I can later draw the legend with draw_grob
+```{r legendmap_prow}
 
 legend <- get_legend(LegendMap+ theme(legend.position="left") )
 
 
 prow <- plot_grid( Map1 + theme(legend.position="none"), 
                    NULL, Map2 + theme(legend.position="none"),
-                   align = 'vh',
-                   #labels = c("A","", "B" ),
-                   hjust = -1,
                    nrow = 1,
-                   rel_widths = c(1, .50, 1)
+                   rel_widths = c(1, 1.5, 1)
 )
-x11(width=12, height=6, pointsize=10)
-
-prow + draw_grob(legend, 2/4,1/8, 0.003) 
-
 
 ```
 
+The final map will have the legend "grobbed" and added to the `prow` plot. The first argument is the `legend`, that was taken previously with `get_legend`, and after the first set of restrictions are the left position, the height, and the right position. The positions might have to be tested a few times to check on how accurate the placement is. 
 
+```{r legendmap_final}
+prow + draw_grob(legend, 2/4,0/8, 0.003) 
+```
 
 
 
