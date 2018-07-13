@@ -190,6 +190,38 @@ print(rmarkplot3, vp=vp1)
 
 
 ```{r}
+
+
+g1  <- qplot(0:10, 0:10)
+g1_void <- g1 + theme_void() + theme(panel.border = element_rect(colour = "black", fill=NA))
+
+vp_topleft <- viewport(width = 0.25, height = 0.5, x = 0.11, y = 0.97, just = c("left", "top"))
+vp_bottomright <- viewport(width = 0.5, height = 0.25, x = 0.97, y = 0.09, just = c("right", "bottom"))
+
+print(g1)
+print(g1_void, vp = vp_topleft)
+print(g1_void, vp = vp_bottomright)
+
+gg1 <- ggplotGrob(g1)
+gg1_void  <- ggplotGrob(g1_void)
+
+g1 +
+    annotation_custom(
+        grob = gg1_void,
+        xmin = 0,
+        xmax = 3,
+        ymin = 5,
+        ymax = 10
+    ) +
+    annotation_custom(
+        grob = gg1_void,
+        xmin = 5,
+        xmax = 10,
+        ymin = 0,
+        ymax = 3
+    )
+
+
 usa <- subset(world, ADMIN == "United States of America")
 
 ## US National Atlas Equal Area (2163)
@@ -216,11 +248,11 @@ library("grid")
 vp_alaska <- viewport(width = 0.25, height = 0.2, x = 0.065, y = 0.22, just = c("left", "bottom"))
 vp_hawaii <- viewport(width = 0.2, height = 0.1, x = 0.27, y = 0.24, just = c("left", "bottom"))
 
-png(filename = "map.png", width = 7, height = 4, units = "in", res = 300)
+## png(filename = "map.png", width = 7, height = 4, units = "in", res = 300)
 print(mainland)
 print(alaska, vp = vp_alaska)
 print(hawaii, vp = vp_hawaii)
-dev.off()
+## dev.off()
 
 ggsave(file = "map.png")                # Just last viewport!
 
@@ -243,19 +275,18 @@ ghawaii  <- ggplotGrob(ggplot(data = usa) +
 mainland +
     annotation_custom(
         grob = galaska,
-        xmin = -2700000,
-        xmax = -1200000,
-        ymin = -2500000,
-        ymax = -1300000
+        xmin = -2800000,
+        xmax = -2800000+((1500000+2400000)/2.5),
+        ymin = -2450000,
+        ymax = -2450000+((2500000-100000)/2.5)
     ) +
     annotation_custom(
         grob = ghawaii,
-        xmin = -1200000,
-        xmax = -400000,
-        ymin = -2500000,
-        ymax = -1600000
+        xmin = -1380000,
+        xmax = -1380000+(-154+161)*120000,
+        ymin = -2450000,
+        ymax = -2450000+(23-18)*120000
     )
-
 
 
 ```
