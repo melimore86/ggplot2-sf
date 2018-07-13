@@ -13,113 +13,141 @@ output:
     toc_depth: '2'
 ---
 
-```{r global_options, include = FALSE, eval=TRUE}
+```{r global_options, include = FALSE}
 knitr::opts_chunk$set(
-    results = "hide",
-    warning = FALSE, 
     message = FALSE,
-    cache = TRUE)
+    warning = FALSE,
+    cache = TRUE,
+    tidy = FALSE)
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
-## devtools::install_github("tidyverse/ggplot2")
-## devtools::install_github("3wen/legendMap")
-library(devtools)
-library(ggmap)
-library(ggplot2)
-library(ggthemes)
-library(legendMap)
-library(maps)
-library(maptools)
-library(rgdal)
-library(rgeos)
-library(rworldmap)
-library(rworldxtra)
-library(sf)
-library(sp)
-library(tidyverse)
-library(tools)
-library(dplyr)
-library(cowplot)
-library(gridExtra)
-library(grid)
-library(lattice)
-library(tidyverse)
-library (viridis)
-
-```
-
-# Map placement
-Depending on the visual information that needs to be displayed, maps and their corresponding data might need to be arrange to create easy to read graphical representations. This can be a very useful tools for publications or presentations. Sometimes adding a slightly different placement to a map, will make the information portrayed more aesthetically appealing. 
-
-
-```{r mappackages, eval=FALSE}
-library(sp)
-library(sf)
-library(ggplot2)
-library(rgdal)
-library(rgeos)
-library(maps)
-library(maptools)
-library(rworldmap)
-library(rworldxtra)
-library(devtools)
-library(legendMap)
-library(tidyverse)
-library(ggmap)
-```
-
-
-```{r pkg-rworldmap, include= FALSE}
+## Tutorial #1
+library("ggplot2")
+library("sf")
 library("rworldmap")
 library("rworldxtra")
+library("legendMap")
+## Tutorial #2
+library("maps")
+library("tools")
 library("ggmap")
-library("tigris")
-library("sp")
+library("ggrepel")
+## Tutorial #3
+
+
+library(sp)
+library(sf)
+library(ggplot2)
+library(rgdal)
+library(rgeos)
+library(maps)
+library(maptools)
+library(rworldmap)
+library(rworldxtra)
+library(devtools)
+library(legendMap)
+library(tidyverse)
+library(ggmap)
+
+## library(cowplot)
+## library(gridExtra)
+## library(grid)
+## library(lattice)
+## library(tidyverse)
+```
+
+# Beautiful maps in a beautiful world
+
+Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into complex patterns, and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable context. Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
+
+Knowing what elements are required to enhance your data is key into making effective maps. Basic elements of a map that should be considered are polygon, points, lines, and text. Polygons, on a map, are closed shapes such as country borders. Lines are considered to be linear shapes that are not filled with any aspect, such as highways, streams, or roads. Finally, points are used to specify specific positions, such as city or landmark locations. With that in mind, one need to think about what elements are required in the map to really make an impact, and convey the information for the intended audience.Layout and formatting are the second critical aspect to enhance data visually. The arrangement of these map elements and how they will be drawn can be adjusted to make a maximum impact.
+
+
+## A solution using R and its ecosystem of packages
+
+Current solutions for creating maps usually involves GIS software, such as ArcGIS, QGIS, eSpatial, etc., which allow to visually prepare a map, in the same approach as one would prepare a poster or a document layout. On the other hand, R, a free and open-source software development environment (IDE) that is used for computing statistical data and graphic in a programmable language, has developed advanced spatial capabilities over the years, and can be used to draw maps programmatically.
+
+R is a powerful and flexible tool. R can be used from calculating data sets to creating graphs and maps with the same data set. R is also free, which makes it easily accessible to anyone. Some other advantages of using R is that it has an interactive language, data structures, graphics availability, a developed community, and the advantage of adding more functionalities through an entire ecosystem of packages. R is a scriptable language that allows the user to write out a code in which it will execute the commands specified.
+
+Using R to create maps brings these benefits to mapping. Elements of a map can be added or removed with ease — R code can be tweaked to make major enhancements with a stroke of a key. It is also easy to reproduce the same maps for different data sets. It is important to be able to script the elements of a map, so that it can be re-used and interpreted by any user. In essence, comparing typical GIS software and R for drawing maps is similar to comparing word processing software (e.g. Microsoft Office or LibreOffice) and a programmatic typesetting system such as LaTeX, in that typical GIS software implement a WYSIWIG approach ("What You See Is What You Get"), while R implements a WYSIWYM approach ("What You See Is What You Mean").
+
+The package `ggplot2` implements the grammar of graphics in R, as a way to create code that make sense to the user: The grammar of graphics is a term used to breaks up graphs into semantic components, such as geometries and layers. Practically speaking, it allows (and forces!) the user to focus on graph elements at a higher level of abstraction, and how the data must be structured to achieve the expected outcome. While `ggplot2` is becoming the de facto standard for R graphs, it does not handle spatial data specifically. The current state-of-the-art of spatial objects in R relies on `Spatial` classes defined in the package [`sp`](https://cran.r-project.org/package=sp), but the new package [`sf`](https://cran.r-project.org/package=sf) has recently implemented the "simple feature" standard, and is steadily taking over `sp`. Recently, the package `ggplot2` has allowed the use of simple features from the package `sf` as layers in a graph[^ggplotsf]. The combination of `ggplot2` and `sf` therefore enables to programmatically create maps, using the grammar of graphics, just as informative or visually appealing as traditional GIS software.
+
+[^ggplotsf]: Note: Support of `sf` objects is only available since the version 3.0.0 of `ggplot2`, recently released on CRAN.
+
+
+## A tutorial to draw beautiful maps programmatically with R, sf and ggplot2
+
+This tutorial is the third part in a series of three:
+
+* General concepts illustrated with the world map
+* Adding additional layers: an example with points and polygons
+* Positioning and layout for complex maps
+
+After the presentation of the basic map concepts, and the flexible approach in layer implemented in `ggplot2`, this section will illustrate how to achieve complex layouts, for instance with map insets, or several maps combined. Depending on the visual information that needs to be displayed, maps and their corresponding data might need to be arranged to create easy to read graphical representations. This tutorial will provide different approaches to arranges maps in the plot, in order to make the information portrayed more aesthetically appealing, and most importantly, convey the information better.
+
+
+## Getting started
+
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. The full list of packages necessary for this tutorial can be installed with:
+
+```{r pkg-install-all, eval = FALSE}
+install.packages(c("remotes", "ggmap", "ggplot2", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
+remotes::install_github("3wen/legendMap")
+```
+
+We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
+
+```{r pkg-ggplot2-sf}
+library("ggplot2")
+theme_set(theme_bw())
 library("sf")
+```
 
+The package `rworldmap` provides a map of countries of the entire world; a map with higher resolution is available in the package `rworldxtra`. We use the function `getMap` to extract the world map (the resolution can be set to `"low"`, if preferred):
+
+```{r pkg-rworldmap}
+library("rworldmap")
+library("rworldxtra")
 world <- getMap(resolution = "high")
+class(world)
+```
+
+The world map is available as a `SpatialPolygonsDataFrame` from the package `sp`; we thus convert it to a simple feature using `st_as_sf` from package `sf`:
+
+```{r world-sf}
 world <- st_as_sf(world)
-
-flcities <- data.frame(State=rep("florida",7), 
-                         City=c("Miami", "Fort Lauderdale", "Orlando", "Gainesville", "Tallahassee", "Tampa","Jacksonville"))
-
-flcities<-cbind(geocode(as.character(flcities$City)),flcities)
-st <- states(resolution = "20m", class="sf")
-st <- st_transform(st, crs=4326)
-
-sites <- data.frame(longitude = c(-80.144005, -80.109), latitude = c(26.479005, 
-    26.83))
-
-sites <- st_as_sf(sites, coords = c("longitude", "latitude"), 
-    crs = 4326, agr = "constant")
-
+class(world)
 ```
 
 
-# Print Feature
+# Using viewports (`grid` package)
 
-The `print` command can be used place multiple maps in one map graphic. Essentially the `print` command This can be a useful and easy way to enhance the information you need to display.  
-
+The `print` command can be used place multiple maps in one map graphic. Essentially the `print` command <!-- end of sentence missing! -->
+This can be a useful and easy way to enhance the information you need to display.  
 
 ```{r print_mapsdata, include=FALSE}
-
-  rmarkplot<-
-   ggplot(data = world) +
+rmarkplot <- ggplot(data = world) +
     geom_sf(fill = "antiquewhite1") +
     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-    geom_sf(data = st, fill = NA, colour = "black") + 
-    geom_text(aes(x=lon, y=lat, label = City), data = flcities, size = 3.0, inherit.aes = TRUE, nudge_y =.18, col = "black", check_overlap = TRUE,fontface = "bold") +
-    annotate(geom="text", x=-85.50, y=27.50, label= "Gulf of Mexico", color="grey22",size=4.5) +
+    geom_sf(data = states, fill = NA, colour = "black") + 
+    geom_text(aes(x = lon, y = lat, label = City), data = flcities, 
+        size = 3, inherit.aes = TRUE, nudge_y = 0.18, col = "black", 
+        check_overlap = TRUE, fontface = "bold") +
+    annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
+        color = "grey22", size = 4.5) +
     coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
     xlab("Longitude")+ ylab("Latitude") +
     theme_classic() + 
-    theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA))
+    theme(legend.position = "none", panel.grid.major = element_line(colour = gray(0.5), 
+        linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+        panel.border = element_rect(fill = NA))
 
-rmarkplot2<-  
-  ggplot(data=world) + 
+library("ggthemes")
+rmarkplot2 <- ggplot(data = world) + 
   geom_sf(fill="antiquewhite1") +
   geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-  geom_sf(data = st, fill = NA, colour = "black") + 
+  geom_sf(data = states, fill = NA, colour = "black") + 
   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
     ggtitle ("Location A") + 
   xlab("Longitude")+ ylab("Latitude") +
@@ -130,7 +158,7 @@ rmarkplot3<-
   ggplot(data=world)+
   geom_sf(fill="antiquewhite1") +
   geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-  geom_sf(data = st, fill = NA, colour = "black") + 
+  geom_sf(data = states, fill = NA, colour = "black") + 
   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
   ggtitle ("Location B") + 
   xlab("Longitude")+ ylab("Latitude") +
@@ -141,15 +169,14 @@ rmarkplot3<-
 
 ```
 
-
-To specify where each plot is displayed with the  `print` function, the arugement `viewport` needs to specify the max width and height of each map, and the minimum x and y coordinates of where the map[s] are located. The `just=` will make a position on how the secondary maps will be displayed. All maps are the same size, until the sizes are adjusted with `width` and `height`.
+To specify where each plot is displayed with the  `print` function, the argument `viewport` needs to specify the maximum width and height of each map, and the minimum x and y coordinates of where the maps are located. The argument `just` will make a position on how the secondary maps will be displayed. All maps are the same size, until the sizes are adjusted with `width` and `height`.
 
 ```{r print_vp}
 vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
 vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
 ```
 
-Now the `print` function can be used the previous spefications that were listed in each plots' `viewport`. 
+Now the `print` function can be used the previous specifications that were listed in each plots' `viewport`. 
 
 ```{r print_finalmap}
 
@@ -159,6 +186,41 @@ print(rmarkplot3, vp=vp1)
 
 
 ```
+
+
+
+```{r}
+usa <- subset(world, ADMIN == "United States of America")
+
+## US National Atlas Equal Area (2163)
+## http://spatialreference.org/ref/epsg/us-national-atlas-equal-area/
+## xlim = c(-2029655, 2512979), ylim = c(-2106341, 733984.1)
+mainland <- ggplot(data = usa) +
+    geom_sf(fill = "cornsilk") +
+    coord_sf(crs = st_crs(2163), xlim = c(-2500000, 2500000), ylim = c(-2300000, 730000))
+
+## Alaska: NAD83(NSRS2007) / Alaska Albers (3467)
+## http://www.spatialreference.org/ref/epsg/3467/
+alaska <- ggplot(data = usa) +
+    geom_sf(fill = "cornsilk") +
+    coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1500000), ylim = c(100000, 2500000), datum = NA)
+
+## Hawaii: Old Hawaiian (4135)
+## http://www.spatialreference.org/ref/epsg/4135/
+hawaii  <- ggplot(data = usa) +
+    geom_sf(fill = "cornsilk") +
+    coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 23), datum = NA)
+
+library("grid")
+vp_alaska <- viewport(width = 0.25, height = 0.2, x = 0.065, y = 0.22, just = c("left", "bottom"))
+vp_hawaii <- viewport(width = 0.2, height = 0.1, x = 0.27, y = 0.24, just = c("left", "bottom"))
+
+print(mainland)
+print(alaska, vp = vp_alaska)
+print(hawaii, vp = vp_hawaii)
+
+```
+
 
 
 
@@ -184,6 +246,7 @@ library(tidyverse)
 
 
 ## Map Placement Function 
+
 The function below will allow us to grab plots that we have previously made, with `ggplotGrob` , and create arrows pointing to the maps. 
 
 The `list.plots`, is a simple list command to combine all of the previously created plots.
@@ -195,35 +258,32 @@ The `df.arrows` has the beginning and ending locations of each line. If this cas
 
 ```{r listplots_function}
 
-list.plots=list(rmarkplot,rmarkplot2, rmarkplot3)
+list.plots <- list(rmarkplot, rmarkplot2, rmarkplot3)
 align_three_plots <- function(list.plots, family = "")
-  {
-  
-gg <- 
-  ggplot()+
-  coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
-  annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
-  annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
-  annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
-  labs(x = NULL, y = NULL) +
-  theme_void()
+{
+    require("dplyr")
+    gg <- ggplot()+
+        coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
+        annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
+        annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
+        annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
+        labs(x = NULL, y = NULL) +
+        theme_void()
 
-
-#DF with the coordinates of the 2 arrows
-df.arrows <- data.frame(id=1:2,
-                        x=c(45.6,45.4),
-                        y=c(21.7,19.8),
-                        xend=c(58,58),
-                        yend=c(35,12))
-
-gg <- 
-  gg +
-  geom_segment(data = df.arrows %>% filter(id==1),
-             aes(x=x,y=y,xend=xend,yend=yend),
-             arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
-  geom_segment(data = df.arrows %>% filter(id==2),
-             aes(x=x,y=y,xend=xend,yend=yend),
-             arrow = arrow(type="closed",length = unit(0.25,"cm")))
+    ## DF with the coordinates of the 2 arrows
+    df.arrows <- data.frame(id=1:2,
+        x=c(45.6,45.4),
+        y=c(21.7,19.8),
+        xend=c(58,58),
+        yend=c(35,12))
+    
+    gg <- gg +
+        geom_segment(data = df.arrows %>% filter(id==1),
+            aes(x=x,y=y,xend=xend,yend=yend),
+            arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
+        geom_segment(data = df.arrows %>% filter(id==2),
+            aes(x=x,y=y,xend=xend,yend=yend),
+            arrow = arrow(type="closed",length = unit(0.25,"cm")))
 }
 
 ```
@@ -235,10 +295,7 @@ The next code will allow up to make a simple empty square plot, that can be clon
 
 
 ```{r listplot_blankplot}
-library("ggthemes")
-
-p <- 
-  ggplot()+
+p <- ggplot() +
   theme_map() +
   theme(panel.border = element_rect(color = "black", size = 0.5, fill = NA),aspect.ratio = 1)
 
@@ -249,11 +306,9 @@ p <-
 The function `mget` will clone the square plots three times. The `three` is just to combinge the `align_three_plots` function and the repetition plots in one argument. And the final step is to plot the function and the plots together. 
 
 ```{r listplot_finalplot}
-library("tidyverse")
-
 plots <- mget(rep("p", 3))
 
-three<- align_three_plots(plots)
+three <- align_three_plots(plots)
 
 plot(three)
 ```
@@ -263,28 +318,24 @@ plot(three)
 The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
 
 ```{r legendmap}
-
-LegendMap<-
-  ggplot(data = world) +
+LegendMap <- ggplot(data = world) +
   geom_sf(aes(fill=REGION)) +
-  scale_fill_viridis(option="plasma", discrete=TRUE)
+  scale_fill_viridis_d(option="plasma")
 ```
 
 ```{r legendmap_maps, include=FALSE}
-Map1<- 
-  ggplot(data = world) +
+Map1 <- ggplot(data = world) +
   geom_sf(aes(fill=REGION)) +
   coord_sf(xlim = c(-10.00, 40.00), ylim = c(20.00, 50.00), expand=TRUE) +
-  scale_fill_viridis(option="plasma", discrete=TRUE) +
+  scale_fill_viridis_d(option="plasma") +
   guides(fill=guide_legend(show=FALSE)) +
   theme_map() +
   theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
 
-Map2<-
-  ggplot(data = world) +
+Map2 <- ggplot(data = world) +
   geom_sf(aes(fill=REGION)) +
   coord_sf(xlim = c(-100.00,-60.00 ), ylim = c(20.00, 50.00), expand=TRUE) +
-  scale_fill_viridis(option="plasma", discrete=TRUE) +
+  scale_fill_viridis_d(option="plasma") +
   guides(fill=guide_legend(show=FALSE)) +
   theme_map() +
   theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
@@ -296,6 +347,7 @@ The function `get_legend`, will grab any legend from any `ggplot` map, or graph.
 
 ```{r legendmap_prow}
 
+library("cowplot")
 legend <- get_legend(LegendMap+ theme(legend.position="left") )
 
 
@@ -312,79 +364,3 @@ The final map will have the legend "grobbed" and added to the `prow` plot. The f
 ```{r legendmap_final}
 prow + draw_grob(legend, 2/4,0/8, 0.003) 
 ```
-
-
-
-
-
-
-
-# Helpful Resources 
-
-##PDFs for packages
-
--ggplot2 
-https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf
-http://ggplot2.tidyverse.org/reference/stat_ecdf.html
-
--sf
-https://cran.r-project.org/web/packages/sf/sf.pdf
-
--sp
-https://cran.r-project.org/web/packages/sp/sp.pdf
-
--CRAN
-https://cran.r-project.org/
-
--Viridis Color Palettes
-https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
-
--Scale Bar
-https://rdrr.io/github/3wen/legendMap/man/scale_bar.html
-
-##Links and various tutorials
-
--Global Choropleth, world interactive, rotating map
-
-http://ellisp.github.io/blog/2017/06/04/military-gdp
-
-
--Ggplotly
-
-http://www.alexejgossmann.com/salaries_by_school_plotly_viz/
-
-
--R studio colors
-
-http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
-
-
--Plotting side by side
-
-https://ikashnitsky.github.io/2017/align-six-maps/
-
-
--Leaflet
-
-https://cengel.github.io/rspatial/4_Mapping.nb.html
-
-Points with gganimate
-http://blog.cultureofinsight.com/2017/06/building-dot-density-maps-with-uk-census-data-in-r/
-
-
--Symobls and Points
-http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r
-
-
--Themes
-http://ggplot2.tidyverse.org/reference/theme.html
-
-
--Two graphs with same legend
-
-https://github.com/tidyverse/ggplot2/wiki/share-a-legend-between-two-ggplot2-graphs
-
-
-- Downloading Multiple Zipped files
-https://www.r-bloggers.com/batch-downloading-zipped-shapefiles-with-r/
-
