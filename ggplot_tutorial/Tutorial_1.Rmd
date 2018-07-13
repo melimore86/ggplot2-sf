@@ -46,14 +46,16 @@ R is a powerful and flexible tool. R can be used from calculating data sets to c
 
 Using R to create maps brings these benefits to mapping. Elements of a map can be added or removed with ease — R code can be tweaked to make major enhancements with a stroke of a key. It is also easy to reproduce the same maps for different data sets. It is important to be able to script the elements of a map, so that it can be re-used and interpreted by any user. In essence, comparing typical GIS software and R for drawing maps is similar to comparing word processing software (e.g. Microsoft Office or LibreOffice) and a programmatic typesetting system such as LaTeX, in that typical GIS software implement a WYSIWIG approach ("What You See Is What You Get"), while R implements a WYSIWYM approach ("What You See Is What You Mean").
 
-The package `ggplot2` implements the grammar of graphics in R, as a way to create code that make sense to the user: The grammar of graphics is a term used to breaks up graphs into semantic components, such as geometries and layers. Practically speaking, it allows (and forces!) the user to focus on graph elements at a higher level of abstraction, and how the data must be structured to achieve the expected outcome. While `ggplot2` is becoming the de facto standard for R graphs, it does not handle spatial data specifically. The current state-of-the-art of spatial objects in R relies on `Spatial` classes defined in the package [`sp`](https://cran.r-project.org/package=sp), but the new package [`sf`](https://cran.r-project.org/package=sf) has recently implemented the "simple feature" standard, and is steadily taking over `sp`. Recently, the package `ggplot2` has allowed the use of simple features from the package `sf` as layers in a graph. The combination of `ggplot2` and `sf` therefore enables to programmatically create maps, using the grammar of graphics, just as informative or visually appealing as traditional GIS software.
+The package `ggplot2` implements the grammar of graphics in R, as a way to create code that make sense to the user: The grammar of graphics is a term used to breaks up graphs into semantic components, such as geometries and layers. Practically speaking, it allows (and forces!) the user to focus on graph elements at a higher level of abstraction, and how the data must be structured to achieve the expected outcome. While `ggplot2` is becoming the de facto standard for R graphs, it does not handle spatial data specifically. The current state-of-the-art of spatial objects in R relies on `Spatial` classes defined in the package [`sp`](https://cran.r-project.org/package=sp), but the new package [`sf`](https://cran.r-project.org/package=sf) has recently implemented the "simple feature" standard, and is steadily taking over `sp`. Recently, the package `ggplot2` has allowed the use of simple features from the package `sf` as layers in a graph[^ggplotsf]. The combination of `ggplot2` and `sf` therefore enables to programmatically create maps, using the grammar of graphics, just as informative or visually appealing as traditional GIS software.
+
+[^ggplotsf]: Note: Support of `sf` objects is only available since the version 3.0.0 of `ggplot2`, recently released on CRAN.
 
 
 ## A tutorial to draw beautiful maps programmatically with R, sf and ggplot2
 
 This tutorial is the first part in a series of three:
 
-* General concepts illustrated with the World Map
+* General concepts illustrated with the world Map
 * Adding additional layers: an example with points and polygons
 * Positioning and layout for complex maps
 
@@ -62,13 +64,10 @@ In this section, we will cover the fundamentals of mapping using `ggplot2` assoc
 
 ## Getting started
 
-Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. For instance, support of `sf` objects in `ggplot2` is currently only available in the development version of the package[^ggplotsf]. The full list of packages necessary for this tutorial can be installed with:
-
-[^ggplotsf]: Support of `sf` objects is planned to be released in version 2.3.0 of `ggplot2` on CRAN.
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. The full list of packages necessary for this tutorial can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("remotes", "ggmap", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
-remotes::install_github("tidyverse/ggplot2")
+install.packages(c("remotes", "ggmap", "ggplot2", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
 remotes::install_github("3wen/legendMap")
 ```
 
@@ -135,7 +134,7 @@ ggplot(data = world) +
     geom_sf(color = "black", fill = "lightgreen")
 ```
 
-The package `ggplot2` allows the use of more complex color schemes, such as a gradient on one variable of the data. Here is another example that shows the population of each country. In this example, we use the "viridis" colorblind friendly palette for the color gradient (with `option = "C"` for the plasma variant), using the square root of the population (which is stored in the variable `POP_EST` of the `world` object):
+The package `ggplot2` allows the use of more complex color schemes, such as a gradient on one variable of the data. Here is another example that shows the population of each country. In this example, we use the "viridis" colorblind-friendly palette for the color gradient (with `option = "C"` for the plasma variant), using the square root of the population (which is stored in the variable `POP_EST` of the `world` object):
 
 ```{r world-colors-pop}
 ggplot(data = world) +
