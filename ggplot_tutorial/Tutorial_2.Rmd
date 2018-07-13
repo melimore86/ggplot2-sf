@@ -19,7 +19,10 @@ knitr::opts_chunk$set(
     message = FALSE,
     warning = FALSE,
     cache = TRUE,
-    tidy = FALSE)
+    tidy = FALSE,
+    fig.width = 7,
+    fig.height = 7,
+    out.width = "65%")
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
 ## Tutorial #1
@@ -27,7 +30,6 @@ library("ggplot2")
 library("sf")
 library("rworldmap")
 library("rworldxtra")
-library("legendMap")
 ## Tutorial #2
 library("maps")
 library("tools")
@@ -37,7 +39,7 @@ library("ggrepel")
 
 # Beautiful maps in a beautiful world
 
-Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into complex patterns, and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable context. Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
+Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into simplified patterns,  and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable context. Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
 
 Knowing what elements are required to enhance your data is key into making effective maps. Basic elements of a map that should be considered are polygon, points, lines, and text. Polygons, on a map, are closed shapes such as country borders. Lines are considered to be linear shapes that are not filled with any aspect, such as highways, streams, or roads. Finally, points are used to specify specific positions, such as city or landmark locations. With that in mind, one need to think about what elements are required in the map to really make an impact, and convey the information for the intended audience.Layout and formatting are the second critical aspect to enhance data visually. The arrangement of these map elements and how they will be drawn can be adjusted to make a maximum impact.
 
@@ -68,11 +70,11 @@ In the previous section, we presented general concepts with a map with little in
 
 ## Getting started
 
-Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. The full list of packages necessary for this tutorial can be installed with:
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. The full list of packages necessary for this series of tutorials can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("remotes", "ggmap", "ggplot2", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
-remotes::install_github("3wen/legendMap")
+install.packages(c("ggmap", "ggplot2", "ggrepel", "ggspatial", 
+    "libwgeom", "sf", "rworldmap", "rworldxtra"))
 ```
 
 We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
@@ -215,7 +217,7 @@ ggplot(data = world) +
 
 We can also fill in the county using their area to visually identify the largest counties. For this, we use the "viridis" colorblind-friendly palette, with some transparency:
 
-```{r counties-plot-scale}
+```{r counties-plot-scale, fig.width = 9, out.width = "75%"}
 ggplot(data = world) +
     geom_sf() +
     geom_sf(data = counties, aes(fill = area)) +
@@ -283,8 +285,8 @@ ggplot(data = world) +
 
 For the final map, we put everything together, having a general background map based on the world map, with state and county delineations, state labels, main city names and locations, as well as a theme adjusted with titles, subtitles, axis labels, and a scale bar:
 
-```{r layers-final-plot}
-library("legendMap")
+```{r layers-final-plot, fig.width = 9, out.width = "75%"}
+library("ggspatial")
 ggplot(data = world) +
     geom_sf(fill = "cornsilk") +
     geom_sf(data = counties, aes(fill = area)) +
@@ -297,11 +299,11 @@ ggplot(data = world) +
     geom_label(data = states, aes(X, Y, label = ID), size = 5, fontface = "bold", 
         nudge_y = states$nudge_y) +
     scale_fill_viridis_c(trans = "sqrt", alpha = .4) +
+    annotation_scale(location = "bl", width_hint = 0.4) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+        style = north_arrow_fancy_orienteering) +
     coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE) +
-    scale_bar(lon = -87.5, lat = 25, distance_lon = 150, distance_lat = 25, 
-        distance_legend = 50, dist_unit = "km", arrow_length = 75, 
-        arrow_distance = 100, arrow_north_size = 6, orientation = TRUE, 
-        legend_size = 3) +
     xlab("Longitude") + ylab("Latitude") +
     ggtitle("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
     theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
