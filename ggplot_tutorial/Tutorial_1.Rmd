@@ -27,7 +27,7 @@ library("ggplot2")
 library("sf")
 library("rworldmap")
 library("rworldxtra")
-library("legendMap")
+library("ggspatial")
 ```
 
 
@@ -64,11 +64,11 @@ In this section, we will cover the fundamentals of mapping using `ggplot2` assoc
 
 ## Getting started
 
-Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. The full list of packages necessary for this tutorial can be installed with:
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. The full list of packages necessary for this series of tutorials can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("remotes", "ggmap", "ggplot2", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
-remotes::install_github("3wen/legendMap")
+install.packages(c("ggmap", "ggplot2", "ggrepel", "ggspatial", 
+    "libwgeom", "sf", "rworldmap", "rworldxtra"))
 ```
 
 We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
@@ -174,20 +174,26 @@ ggplot(data = world) +
 ```
 
 
-## Scale bar and North arrow (`legendMap::scalebar`)
+## Scale bar and North arrow (package `ggspatial`)
 
-Several packages are available to create a scale bar on a map (e.g. `prettymapr`, `vcd`, or `ggsn`). We introduce here the package [`legendMap`](https://github.com/3wen/legendMap), which provides an easy-to-use function `scale_bar` that allows to add simultaneously the north symbol and a scale bar into the `ggplot` map. Five arguments need to be set manually: `lon`, `lat`, `distance_lon`, `distance_lat`, and `distance_legend`. The location of the scale bar has to be specified in longitude/latitude in the `lon` and `lat` arguments. The shaded distance inside the scale bar is controlled by the `distance_lon` argument. while its width is determined by `distance_lat`. Additionally, it is possible to change the font size for the legend of the scale bar (argument `legend_size`, which defaults to 3). The North arrow behind the "N" north symbol can also be adjusted for its length (`arrow_length`), its distance to the scale (`arrow_distance`), or the size the N north symbol itself (`arrow_north_size`, which defaults to 6). Note that all distances (`distance_lon`, `distance_lat`, `distance_legend`, `arrow_length`, `arrow_distance`) are set to `"km"` by default in `distance_unit`; they can also be set to nautical miles
-with "nm", or miles with "mi".
+Several packages are available to create a scale bar on a map (e.g. `prettymapr`, `vcd`, `ggsn`, or `legendMap`). We introduce here the package `ggspatial`, which provides easy-to-use functions…
 
-```{r world-scalebar}
-library("legendMap")
+`scale_bar` that allows to add simultaneously the north symbol and a scale bar into the `ggplot` map. Five arguments need to be set manually: `lon`, `lat`, `distance_lon`, `distance_lat`, and `distance_legend`. The location of the scale bar has to be specified in longitude/latitude in the `lon` and `lat` arguments. The shaded distance inside the scale bar is controlled by the `distance_lon` argument. while its width is determined by `distance_lat`. Additionally, it is possible to change the font size for the legend of the scale bar (argument `legend_size`, which defaults to 3). The North arrow behind the "N" north symbol can also be adjusted for its length (`arrow_length`), its distance to the scale (`arrow_distance`), or the size the N north symbol itself (`arrow_north_size`, which defaults to 6). Note that all distances (`distance_lon`, `distance_lat`, `distance_legend`, `arrow_length`, `arrow_distance`) are set to `"km"` by default in `distance_unit`; they can also be set to nautical miles with "nm", or miles with "mi".
+
+<!-- Rework using annotation_scale and annotation_north_arrow from ggspatial! ggspatial is on CRAN, which makes the entire tutorial only rely on CRAN package! Describe useful arguments used below -->
+
+```{r world-north, warning = TRUE}
+library("ggspatial")
 ggplot(data = world) +
     geom_sf() +
-    scale_bar(lon = -99.66, lat = 8, distance_lon = 500,
-        distance_lat = 50, distance_legend = 100, arrow_length = 300,
-        arrow_north_size = 10) +
+    annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+        style = north_arrow_fancy_orienteering) +
     coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97))
 ```
+
+Note the warning of the inaccurate scale bar: since the map use unprojected data in longitude/latitude (WGS84) on an equidistant cylindrical projection (all meridians being parallel), length in (kilo)meters on the map directly depends mathematically on the degree of latitude. Projected data will typically present more accurate scale bars.
 
 
 ## Country names and other names (`geom_text` and `annotate`)
@@ -234,9 +240,10 @@ ggplot(data = world) +
         color = "darkblue", fontface = "bold", check_overlap = TRUE) +
     annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
         fontface = "italic", color = "grey22", size = 6) +
-    scale_bar(lon = -99.66, lat = 8, distance_lon = 500,
-        distance_lat = 50, distance_legend = 100, arrow_length = 300,
-        arrow_north_size = 10) +
+    annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+        style = north_arrow_fancy_orienteering) +
     coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE) +
     xlab("Longitude") + ylab("Latitude") +
     ggtitle("Map of the Gulf of Mexico and the Caribbean Sea") +
