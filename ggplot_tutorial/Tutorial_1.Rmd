@@ -145,12 +145,24 @@ ggplot(data = world) +
 
 ## Projection and extent (`coord_sf`)
 
-The function `coord_sf` allows to deal with the coordinate system, which includes both projection and extent of the map. By default, the map will use the coordinate system of the first layer that defines one (i.e. scanned in the order provided), or if none, fall back on WGS84 (latitude/longitude, the reference system used in GPS). Using the argument `crs`, it is possible to override this setting, and project on the fly to any projection defined by a valid PROJ4 string (here, the European-centric "Bonne" projection):
+The function `coord_sf` allows to deal with the coordinate system, which includes both projection and extent of the map. By default, the map will use the coordinate system of the first layer that defines one (i.e. scanned in the order provided), or if none, fall back on WGS84 (latitude/longitude, the reference system used in GPS). Using the argument `crs`, it is possible to override this setting, and project on the fly to any projection. This can be achieved using any valid PROJ4 string (here, the European-centric ETRS89 Lambert Azimuthal Equal-Area projection):
 
 ```{r world-coord}
 ggplot(data = world) +
     geom_sf() +
-    coord_sf(crs = "+proj=bonne +lon_0=0 +lat_1=60 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+    coord_sf(crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs ")
+```
+
+Spatial Reference System Identifier (SRID) or an European Petroleum Survey Group (EPSG) code are available for the projection of interest, they can be used directly instead of the full PROJ4 string. The two following calls are equivalent for the ETRS89 Lambert Azimuthal Equal-Area projection, which is EPSG code 3035:
+
+```{r world-coord-alt, eval = FALSE}
+ggplot(data = world) +
+    geom_sf() +
+    coord_sf(crs = "+init=epsg:3035")
+
+ggplot(data = world) +
+    geom_sf() +
+    coord_sf(crs = st_crs(3035))
 ```
 
 The extent of the map can also be set in `coord_sf`, in practice allowing to "zoom" in the area of  interest, provided by limits on the x-axis (`xlim`), and on the y-axis (`ylim`). Note that the limits are automatically expanded by a fraction to ensure that data and axes don't overlap; it can also be turned off to exactly match the limits provided with `expand = FALSE`:
