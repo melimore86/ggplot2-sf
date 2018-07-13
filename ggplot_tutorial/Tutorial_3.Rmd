@@ -212,12 +212,51 @@ hawaii  <- ggplot(data = usa) +
     coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 23), datum = NA)
 
 library("grid")
+## vp_usa <- viewport(width = 1, height = 0.6, x = 0.5, y = 0.5)
 vp_alaska <- viewport(width = 0.25, height = 0.2, x = 0.065, y = 0.22, just = c("left", "bottom"))
 vp_hawaii <- viewport(width = 0.2, height = 0.1, x = 0.27, y = 0.24, just = c("left", "bottom"))
 
+png(filename = "map.png", width = 7, height = 4, units = "in", res = 300)
 print(mainland)
 print(alaska, vp = vp_alaska)
 print(hawaii, vp = vp_hawaii)
+dev.off()
+
+ggsave(file = "map.png")                # Just last viewport!
+
+
+ggmain <- ggplot_build(mainland)
+str(ggmain)
+ggmain$layout$panel_scales_x[[1]]$range$range
+ggmain$layout$panel_scales_y[[1]]$range$range
+## c(-6381285, -5381285), ylim = c(-2116175, -1116175)
+
+
+galaska <- ggplotGrob(ggplot(data = usa) +
+    geom_sf(fill = "cornsilk") +
+    coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1500000), ylim = c(100000, 2500000), datum = NA))
+
+ghawaii  <- ggplotGrob(ggplot(data = usa) +
+    geom_sf(fill = "cornsilk") +
+    coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 23), datum = NA))
+
+mainland +
+    annotation_custom(
+        grob = galaska,
+        xmin = -2700000,
+        xmax = -1200000,
+        ymin = -2500000,
+        ymax = -1300000
+    ) +
+    annotation_custom(
+        grob = ghawaii,
+        xmin = -1200000,
+        xmax = -400000,
+        ymin = -2500000,
+        ymax = -1600000
+    )
+
+
 
 ```
 
