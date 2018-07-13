@@ -27,17 +27,13 @@ library("ggplot2")
 library("sf")
 library("rworldmap")
 library("rworldxtra")
-library("viridis")
 library("legendMap")
 ```
 
 
 # Beautiful maps in a beautiful world
 
-Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into simplified patterns, 
-and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable
-context.
-Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
+Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into simplified patterns,  and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable context. Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
 
 Knowing what elements are required to enhance your data is key into making effective maps. Basic elements of a map that should be considered are polygon, points, lines, and text. Polygons, on a map, are closed shapes such as country borders. Lines are considered to be linear shapes that are not filled with any aspect, such as highways, streams, or roads. Finally, points are used to specify specific positions, such as city or landmark locations. With that in mind, one need to think about what elements are required in the map to really make an impact, and convey the information for the intended audience.Layout and formatting are the second critical aspect to enhance data visually. The arrangement of these map elements and how they will be drawn can be adjusted to make a maximum impact.
 
@@ -71,7 +67,7 @@ Many R packages are available from [CRAN](https://cran.r-project.org/), the Comp
 [^ggplotsf]: Support of `sf` objects is planned to be released in version 2.3.0 of `ggplot2` on CRAN.
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("remotes", "ggmap", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra", "viridis"))
+install.packages(c("remotes", "ggmap", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
 remotes::install_github("tidyverse/ggplot2")
 remotes::install_github("3wen/legendMap")
 ```
@@ -139,13 +135,12 @@ ggplot(data = world) +
     geom_sf(color = "black", fill = "lightgreen")
 ```
 
-The package `ggplot2` allows the use of more complex color schemes, such as a gradient on one variable of the data. Here is another example that shows the population of each country. Note that the color gradient is based on a colorblind friendly palette from the [`viridis`](https://cran.r-project.org/package=viridis) package (`option = "C"` corresponds to the plasma palette), using the square root of the population (which is stored in the variable `POP_EST` of the `world` object):
+The package `ggplot2` allows the use of more complex color schemes, such as a gradient on one variable of the data. Here is another example that shows the population of each country. In this example, we use the "viridis" colorblind friendly palette for the color gradient (with `option = "C"` for the plasma variant), using the square root of the population (which is stored in the variable `POP_EST` of the `world` object):
 
 ```{r world-colors-pop}
-library("viridis")
 ggplot(data = world) +
     geom_sf(aes(fill = POP_EST)) +
-    scale_fill_viridis(option = "C", trans = "sqrt")
+    scale_fill_viridis_c(option = "C", trans = "sqrt")
 ```
 
 
