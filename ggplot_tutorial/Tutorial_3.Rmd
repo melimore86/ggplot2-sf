@@ -18,7 +18,10 @@ knitr::opts_chunk$set(
     message = FALSE,
     warning = FALSE,
     cache = TRUE,
-    tidy = FALSE)
+    tidy = FALSE,
+    fig.width = 7,
+    fig.height = 7,
+    out.width = "65%")
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
 ## Tutorial #1
@@ -26,13 +29,14 @@ library("ggplot2")
 library("sf")
 library("rworldmap")
 library("rworldxtra")
-library("legendMap")
+library("ggspatial")
 ## Tutorial #2
 library("maps")
 library("tools")
 library("ggmap")
 library("ggrepel")
 ## Tutorial #3
+library("grid")
 
 
 library(sp)
@@ -58,7 +62,7 @@ library(ggmap)
 
 # Beautiful maps in a beautiful world
 
-Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into complex patterns, and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable context. Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
+Maps are used in a variety of fields to express data in an appealing and interpretive way. Data can be expressed into simplified patterns,  and this data interpretation is generally lost if the data is only seen through a spread sheet. Maps can add vital context by incorporating many variables into an easy to read and applicable context. Maps are also very important in the information world because they can quickly allow the public to gain better insight so that they can stay informed. It's critical to have maps be effective, which means creating maps that can be easily understood by a given audience. For instance, maps that need to be understood by children would be very different from maps intended to be shown to geographers. 
 
 Knowing what elements are required to enhance your data is key into making effective maps. Basic elements of a map that should be considered are polygon, points, lines, and text. Polygons, on a map, are closed shapes such as country borders. Lines are considered to be linear shapes that are not filled with any aspect, such as highways, streams, or roads. Finally, points are used to specify specific positions, such as city or landmark locations. With that in mind, one need to think about what elements are required in the map to really make an impact, and convey the information for the intended audience.Layout and formatting are the second critical aspect to enhance data visually. The arrangement of these map elements and how they will be drawn can be adjusted to make a maximum impact.
 
@@ -89,11 +93,11 @@ After the presentation of the basic map concepts, and the flexible approach in l
 
 ## Getting started
 
-Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. Some packages not available on CRAN, or for which the development version is required can also be found on [GitHub](https://github.com/), a repository for software source code, and can be installed with the help of the package `remote`. The full list of packages necessary for this tutorial can be installed with:
+Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. The full list of packages necessary for this series of tutorials can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("remotes", "ggmap", "ggplot2", "ggrepel", "libwgeom", "sf", "rworldmap", "rworldxtra"))
-remotes::install_github("3wen/legendMap")
+install.packages(c("ggmap", "ggplot2", "ggrepel", "ggspatial", 
+    "libwgeom", "sf", "rworldmap", "rworldxtra"))
 ```
 
 We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
@@ -121,87 +125,103 @@ class(world)
 ```
 
 
-# Using viewports (`grid` package)
+# Map insets
+
+<!-- Text of the section to rework entirely -->
 
 The `print` command can be used place multiple maps in one map graphic. Essentially the `print` command <!-- end of sentence missing! -->
 This can be a useful and easy way to enhance the information you need to display.  
 
 ```{r print_mapsdata, include=FALSE}
-rmarkplot <- ggplot(data = world) +
-    geom_sf(fill = "antiquewhite1") +
-    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-    geom_sf(data = states, fill = NA, colour = "black") + 
-    geom_text(aes(x = lon, y = lat, label = City), data = flcities, 
-        size = 3, inherit.aes = TRUE, nudge_y = 0.18, col = "black", 
-        check_overlap = TRUE, fontface = "bold") +
-    annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
-        color = "grey22", size = 4.5) +
-    coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
-    xlab("Longitude")+ ylab("Latitude") +
-    theme_classic() + 
-    theme(legend.position = "none", panel.grid.major = element_line(colour = gray(0.5), 
-        linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
-        panel.border = element_rect(fill = NA))
+## rmarkplot <- ggplot(data = world) +
+##     geom_sf(fill = "antiquewhite1") +
+##     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+##     geom_sf(data = states, fill = NA, colour = "black") + 
+##     geom_text(aes(x = lon, y = lat, label = City), data = flcities, 
+##         size = 3, inherit.aes = TRUE, nudge_y = 0.18, col = "black", 
+##         check_overlap = TRUE, fontface = "bold") +
+##     annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
+##         color = "grey22", size = 4.5) +
+##     coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
+##     xlab("Longitude")+ ylab("Latitude") +
+##     theme_classic() + 
+##     theme(legend.position = "none", panel.grid.major = element_line(colour = gray(0.5), 
+##         linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+##         panel.border = element_rect(fill = NA))
 
-library("ggthemes")
-rmarkplot2 <- ggplot(data = world) + 
-  geom_sf(fill="antiquewhite1") +
-  geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-  geom_sf(data = states, fill = NA, colour = "black") + 
-  coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
-    ggtitle ("Location A") + 
-  xlab("Longitude")+ ylab("Latitude") +
-  theme_map() + 
-  theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
+## library("ggthemes")
+## rmarkplot2 <- ggplot(data = world) + 
+##   geom_sf(fill="antiquewhite1") +
+##   geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+##   geom_sf(data = states, fill = NA, colour = "black") + 
+##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
+##     ggtitle ("Location A") + 
+##   xlab("Longitude")+ ylab("Latitude") +
+##   theme_map() + 
+##   theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
 
-rmarkplot3<- 
-  ggplot(data=world)+
-  geom_sf(fill="antiquewhite1") +
-  geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-  geom_sf(data = states, fill = NA, colour = "black") + 
-  coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
-  ggtitle ("Location B") + 
-  xlab("Longitude")+ ylab("Latitude") +
-  theme_map() + 
-  theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
-  
-  
-
+## rmarkplot3<- 
+##   ggplot(data=world)+
+##   geom_sf(fill="antiquewhite1") +
+##   geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+##   geom_sf(data = states, fill = NA, colour = "black") + 
+##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
+##   ggtitle ("Location B") + 
+##   xlab("Longitude")+ ylab("Latitude") +
+##   theme_map() + 
+##   theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
 ```
 
 To specify where each plot is displayed with the  `print` function, the argument `viewport` needs to specify the maximum width and height of each map, and the minimum x and y coordinates of where the maps are located. The argument `just` will make a position on how the secondary maps will be displayed. All maps are the same size, until the sizes are adjusted with `width` and `height`.
 
 ```{r print_vp}
-vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
-vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
+## vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
+## vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
 ```
 
 Now the `print` function can be used the previous specifications that were listed in each plots' `viewport`. 
 
 ```{r print_finalmap}
-
-print(rmarkplot)
-print(rmarkplot2, vp=vp)
-print(rmarkplot3, vp=vp1)
-
-
+## print(rmarkplot)
+## print(rmarkplot2, vp=vp)
+## print(rmarkplot3, vp=vp1)
 ```
 
 
+2 solutions:
 
-```{r}
+* Viewports (allow plots anywhere, including outer margins, based on relative position): package `grid`
+* Grobs (graphic objects, allow plots only in plot region, based on coordinates): directly using `ggplot2`
 
+Example illustrating the difference between the two, and their use:
 
+```{r inset-example-qplot}
 g1  <- qplot(0:10, 0:10)
 g1_void <- g1 + theme_void() + theme(panel.border = element_rect(colour = "black", fill=NA))
+```
 
-vp_topleft <- viewport(width = 0.25, height = 0.5, x = 0.11, y = 0.97, just = c("left", "top"))
-vp_bottomright <- viewport(width = 0.5, height = 0.25, x = 0.97, y = 0.09, just = c("right", "bottom"))
+Graphs from `ggplot2` can be saved, in which case they are not print. Calling their name, or using `print` plots them, the latter allowing for more options:
+
+```{r inset-example-print, out.width = "45%"}
+print(g1)
+print(g1_void)
+```
+
+Using viewports (note: initial viewport takes the entire plot, from 0 to 1 on both axes):
+
+```{r inset-example-viewports}
+library("grid")
+vp_topleft <- viewport(width = 0.25, height = 0.5, x = 0.02, y = 0.98, just = c("left", "top"))
+vp_bottomright <- viewport(width = 0.5, height = 0.25, x = 1, y = 0.09, just = c("center", "bottom"))
 
 print(g1)
 print(g1_void, vp = vp_topleft)
 print(g1_void, vp = vp_bottomright)
+```
 
+Using grobs, and `annotation_custom`:
+
+```{r inset-example-grobs}
 gg1 <- ggplotGrob(g1)
 gg1_void  <- ggplotGrob(g1_void)
 
@@ -220,78 +240,113 @@ g1 +
         ymin = 0,
         ymax = 3
     )
+```
 
+Hence for map insets directly on the background map, both solutions are viable (and one might prefer one or the other depending on relative or absolute coordinates).
 
+Map example using map of the 50 states of the US, including Alaska and Hawaii (note: not to scale for the latter), using reference projections for US maps:
+
+```{r inset-usa}
 usa <- subset(world, ADMIN == "United States of America")
-
 ## US National Atlas Equal Area (2163)
 ## http://spatialreference.org/ref/epsg/us-national-atlas-equal-area/
-## xlim = c(-2029655, 2512979), ylim = c(-2106341, 733984.1)
-mainland <- ggplot(data = usa) +
-    geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(2163), xlim = c(-2500000, 2500000), ylim = c(-2300000, 730000))
+(mainland <- ggplot(data = usa) +
+     geom_sf(fill = "cornsilk") +
+     coord_sf(crs = st_crs(2163), xlim = c(-2500000, 2500000), ylim = c(-2300000, 
+         730000)))
+```
 
+Alaska (note: `datum = NA` removes graticules):
+
+```{r inset-alaska}
 ## Alaska: NAD83(NSRS2007) / Alaska Albers (3467)
 ## http://www.spatialreference.org/ref/epsg/3467/
-alaska <- ggplot(data = usa) +
-    geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1500000), ylim = c(100000, 2500000), datum = NA)
+(alaska <- ggplot(data = usa) +
+     geom_sf(fill = "cornsilk") +
+     coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1600000), ylim = c(200000, 
+         2500000), expand = FALSE, datum = NA))
+```
 
+Hawaii:
+
+```{r inset-hawaii}
 ## Hawaii: Old Hawaiian (4135)
 ## http://www.spatialreference.org/ref/epsg/4135/
-hawaii  <- ggplot(data = usa) +
-    geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 23), datum = NA)
+(hawaii  <- ggplot(data = usa) +
+     geom_sf(fill = "cornsilk") +
+     coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 
+         23), expand = FALSE, datum = NA))
+```
 
-library("grid")
-## vp_usa <- viewport(width = 1, height = 0.6, x = 0.5, y = 0.5)
-vp_alaska <- viewport(width = 0.25, height = 0.2, x = 0.065, y = 0.22, just = c("left", "bottom"))
-vp_hawaii <- viewport(width = 0.2, height = 0.1, x = 0.27, y = 0.24, just = c("left", "bottom"))
+Using viewports (tricky to define exact positions; note the use of the ratios of the inset, combined with the ratio of the plot):
 
-## png(filename = "map.png", width = 7, height = 4, units = "in", res = 300)
+```{r inset-viewports, fig.width = 10, fig.height = 6, out.width = "90%"}}
+xdiffAlaska <- 1600000 - (-2400000)
+ydiffAlaska <- 2500000 - 200000
+(ratioAlaska <- ydiffAlaska / xdiffAlaska)
+vp_alaska <- viewport(width = 0.26, height = 0.26*10/6*ratioAlaska, x = 0.05, y = 0.05, just = c("left", "bottom"))
+
+xdiffHawaii <- -154 - (-161)
+ydiffHawaii  <- 23 - 18
+(ratioHawaii  <- ydiffHawaii / xdiffHawaii)
+vp_hawaii <- viewport(width = 0.15, height = 0.15*10/6*ratioHawaii, x = 0.3, y = 0.05, just = c("left", "bottom"))
+
 print(mainland)
 print(alaska, vp = vp_alaska)
 print(hawaii, vp = vp_hawaii)
-## dev.off()
+```
 
-ggsave(file = "map.png")                # Just last viewport!
+`ggsave` only takes last viewport; solution with specific device (`png`, `pdf`, …)
 
+```{r inset-viewports-save, eval = FALSE}
+png(filename = "map-us-viewports.png", width = 10, height = 6, units = "in", res = 300)
+print(mainland)
+print(alaska, vp = vp_alaska)
+print(hawaii, vp = vp_hawaii)
+dev.off()
+```
 
+Same using grobs (note the use of xdiff/ydiff and arbitrary ratios):
+
+```{r inset-grobs}
 ggmain <- ggplot_build(mainland)
 str(ggmain)
 ggmain$layout$panel_scales_x[[1]]$range$range
 ggmain$layout$panel_scales_y[[1]]$range$range
 ## c(-6381285, -5381285), ylim = c(-2116175, -1116175)
 
-
-galaska <- ggplotGrob(ggplot(data = usa) +
+galaska <- ggplotGrob(alskaggplot(data = usa) +
     geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1500000), ylim = c(100000, 2500000), datum = NA))
+    coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1500000), ylim = c(1e+05, 
+        2500000), expand = FALSE, datum = NA))
 
 ghawaii  <- ggplotGrob(ggplot(data = usa) +
     geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 23), datum = NA))
+    coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 
+        23), expand = FALSE, datum = NA))
 
 mainland +
     annotation_custom(
-        grob = galaska,
-        xmin = -2800000,
-        xmax = -2800000+((1500000+2400000)/2.5),
+        grob = ggplotGrob(alaska),
+        xmin = -2750000,
+        xmax = -2750000 + xdiffAlaska/2.5,
         ymin = -2450000,
-        ymax = -2450000+((2500000-100000)/2.5)
+        ymax = -2450000 + ydiffAlaska/2.5
     ) +
     annotation_custom(
-        grob = ghawaii,
-        xmin = -1380000,
-        xmax = -1380000+(-154+161)*120000,
+        grob = ggplotGrob(hawaii),
+        xmin = -1250000,
+        xmax = -1250000 + xdiffHawaii*120000,
         ymin = -2450000,
-        ymax = -2450000+(23-18)*120000
+        ymax = -2450000 + ydiffHawaii*120000
     )
-
-
 ```
 
+Save OK with `ggsave`:
 
+```{r inset-grobs-save, eval = FALSE}
+ggsave("map-inset-grobs.pdf")
+```
 
 
 # Multiple Maps in one window

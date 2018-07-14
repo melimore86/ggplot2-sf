@@ -30,6 +30,7 @@ library("ggplot2")
 library("sf")
 library("rworldmap")
 library("rworldxtra")
+library("ggspatial")
 ## Tutorial #2
 library("maps")
 library("tools")
