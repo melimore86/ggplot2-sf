@@ -1,5 +1,5 @@
 ---
-title: "Positioning maps made with ggplot2+sf"
+title: "Drawing beautiful maps programmatically with R, sf and ggplot2 — Part 1: Layouts"
 author: "Mel Moreno and Mathieu Basille"
 output:
   html_document:
@@ -13,6 +13,7 @@ output:
     toc_depth: '2'
 ---
 
+
 ```{r global_options, include = FALSE}
 knitr::opts_chunk$set(
     message = FALSE,
@@ -21,7 +22,8 @@ knitr::opts_chunk$set(
     tidy = FALSE,
     fig.width = 7,
     fig.height = 7,
-    out.width = "65%")
+    out.width = "65%"
+)
 ## This is just to "pre-load" all packages, and prevent the startup
 ## messages to show
 ## Tutorial #1
@@ -37,28 +39,8 @@ library("ggmap")
 library("ggrepel")
 ## Tutorial #3
 library("grid")
-
-
-library(sp)
-library(sf)
-library(ggplot2)
-library(rgdal)
-library(rgeos)
-library(maps)
-library(maptools)
-library(rworldmap)
-library(rworldxtra)
-library(devtools)
-library(legendMap)
-library(tidyverse)
-library(ggmap)
-
-## library(cowplot)
-## library(gridExtra)
-## library(grid)
-## library(lattice)
-## library(tidyverse)
 ```
+
 
 # Beautiful maps in a beautiful world
 
@@ -135,11 +117,6 @@ This can be a useful and easy way to enhance the information you need to display
 ```{r print_mapsdata, include=FALSE}
 ## rmarkplot <- ggplot(data = world) +
 ##     geom_sf(fill = "antiquewhite1") +
-##     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-##     geom_sf(data = states, fill = NA, colour = "black") + 
-##     geom_text(aes(x = lon, y = lat, label = City), data = flcities, 
-##         size = 3, inherit.aes = TRUE, nudge_y = 0.18, col = "black", 
-##         check_overlap = TRUE, fontface = "bold") +
 ##     annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
 ##         color = "grey22", size = 4.5) +
 ##     coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
@@ -152,8 +129,6 @@ This can be a useful and easy way to enhance the information you need to display
 ## library("ggthemes")
 ## rmarkplot2 <- ggplot(data = world) + 
 ##   geom_sf(fill="antiquewhite1") +
-##   geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-##   geom_sf(data = states, fill = NA, colour = "black") + 
 ##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
 ##     ggtitle ("Location A") + 
 ##   xlab("Longitude")+ ylab("Latitude") +
@@ -163,8 +138,6 @@ This can be a useful and easy way to enhance the information you need to display
 ## rmarkplot3<- 
 ##   ggplot(data=world)+
 ##   geom_sf(fill="antiquewhite1") +
-##   geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-##   geom_sf(data = states, fill = NA, colour = "black") + 
 ##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
 ##   ggtitle ("Location B") + 
 ##   xlab("Longitude")+ ylab("Latitude") +
@@ -207,7 +180,7 @@ print(g1)
 print(g1_void)
 ```
 
-Using viewports (note: initial viewport takes the entire plot, from 0 to 1 on both axes):
+Using viewports (note: initial viewport takes the entire plot, from 0 to 1 on both axes; viewports are "filled" with their plots, unless the plot itself has a constrained ratio, like a map):
 
 ```{r inset-example-viewports}
 library("grid")
@@ -256,7 +229,7 @@ usa <- subset(world, ADMIN == "United States of America")
          730000)))
 ```
 
-Alaska (note: `datum = NA` removes graticules):
+Alaska (note: `datum = NA` removes graticules and coordinates):
 
 ```{r inset-alaska}
 ## Alaska: NAD83(NSRS2007) / Alaska Albers (3467)
@@ -280,7 +253,7 @@ Hawaii:
 
 Using viewports (tricky to define exact positions; note the use of the ratios of the inset, combined with the ratio of the plot):
 
-```{r inset-viewports, fig.width = 10, fig.height = 6, out.width = "90%"}}
+```{r inset-viewports, fig.width = 10, fig.height = 6, out.width = "90%"}
 xdiffAlaska <- 1600000 - (-2400000)
 ydiffAlaska <- 2500000 - 200000
 (ratioAlaska <- ydiffAlaska / xdiffAlaska)
@@ -308,23 +281,7 @@ dev.off()
 
 Same using grobs (note the use of xdiff/ydiff and arbitrary ratios):
 
-```{r inset-grobs}
-ggmain <- ggplot_build(mainland)
-str(ggmain)
-ggmain$layout$panel_scales_x[[1]]$range$range
-ggmain$layout$panel_scales_y[[1]]$range$range
-## c(-6381285, -5381285), ylim = c(-2116175, -1116175)
-
-galaska <- ggplotGrob(alskaggplot(data = usa) +
-    geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(3467), xlim = c(-2400000, 1500000), ylim = c(1e+05, 
-        2500000), expand = FALSE, datum = NA))
-
-ghawaii  <- ggplotGrob(ggplot(data = usa) +
-    geom_sf(fill = "cornsilk") +
-    coord_sf(crs = st_crs(4135), xlim = c(-161, -154), ylim = c(18, 
-        23), expand = FALSE, datum = NA))
-
+```{r inset-grobs, fig.width = 10, fig.height = 6, out.width = "90%"}
 mainland +
     annotation_custom(
         grob = ggplotGrob(alaska),
@@ -349,7 +306,17 @@ ggsave("map-inset-grobs.pdf")
 ```
 
 
-# Multiple Maps in one window
+# Several maps side by side or on a grid
+
+<!-- Text of the section to rework entirely -->
+
+****************
+
+
+
+# Several maps connected with arrows
+
+<!-- Text of the section to rework entirely -->
 
 Having a way to emphasize locations on a map can also be a graphic that would be useful for biologists. The next steps will be to create blank sqaure plots that will make the map visualization interesting and accurate. In the following map, arrows will point to specific locations.
 
@@ -358,15 +325,15 @@ First we will start with the overall packages needed to build this
 Credit to Ilya Kashnitsky (https://ikashnitsky.github.io/2017/align-six-maps/).
 
 ```{r listplot_packages, eval=FALSE}
-library(sp)
-library(sf)
-library(ggplot2)
-library(cowplot)
-library(ggthemes)
-library(gridExtra)
-library(grid)
-library(lattice)
-library(tidyverse)
+## library(sp)
+## library(sf)
+## library(ggplot2)
+## library(cowplot)
+## library(ggthemes)
+## library(gridExtra)
+## library(grid)
+## library(lattice)
+## library(tidyverse)
 ```
 
 
@@ -381,35 +348,104 @@ Afterwards, a function is created to create a custom annotation of each plot, wi
 The `df.arrows` has the beginning and ending locations of each line. If this case, there are two lines, but more lines can be created by adding more starting locations for `x=` and `y=`. 
 
 
+
+```{r map-arrows-sites}
+sites <- st_as_sf(data.frame(longitude = c(-80.15, -80.1), latitude = c(26.5, 
+    26.8)), coords = c("longitude", "latitude"), crs = 4326, 
+    agr = "constant")
+```
+
+
+```{r map-arrows-maps}
+florida <- ggplot(data = world) +
+    geom_sf(fill = "antiquewhite1") +
+    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+    annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
+        color = "grey22", size = 4.5) +
+    coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8)) +
+    xlab("Longitude")+ ylab("Latitude")+
+    theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
+        size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+        panel.border = element_rect(fill = NA))
+
+siteA <- ggplot(data = world) +
+    geom_sf(fill = "antiquewhite1") +
+    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-80.25, -79.95), ylim = c(26.65, 26.95), expand = FALSE) + 
+    annotate("text", x = -80.18, y = 26.92, label= "Site A", size = 6) + 
+    theme_void() + 
+    theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
+        size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+        panel.border = element_rect(fill = NA))
+
+siteB <- ggplot(data = world) + 
+    geom_sf(fill = "antiquewhite1") +
+    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+    coord_sf(xlim = c(-80.3, -80), ylim = c(26.35, 26.65), expand = FALSE) +
+    annotate("text", x = -80.23, y = 26.62, label= "Site B", size = 6) + 
+    theme_void() +
+    theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
+        size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+        panel.border = element_rect(fill = NA))
+```
+
+DF with the coordinates of the 2 arrows:
+
+```{r map-arrows-arrows}
+arrowA <- data.frame(x1 = 18.5, x2 = 23, y1 = 9.5, y2 = 14.5)
+arrowB <- data.frame(x1 = 18.5, x2 = 23, y1 = 8.5, y2 = 6.5)
+```
+
+
+```{r map-arrows-plot, fig.width = 10, fig.height = 7, out.width = "90%"}
+ggplot() +
+    coord_equal(xlim = c(0, 28), ylim = c(0, 20), expand = FALSE) +
+    annotation_custom(ggplotGrob(florida), xmin = 0, xmax = 20, ymin = 0, ymax = 20) +
+    annotation_custom(ggplotGrob(siteA), xmin = 20, xmax = 28, ymin = 11.25, ymax = 19) +
+    annotation_custom(ggplotGrob(siteB), xmin = 20, xmax = 28, ymin = 2.5, ymax = 10.25) +
+    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowA, 
+        arrow = arrow(), lineend = "round") +
+    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowB, 
+        arrow = arrow(), lineend = "round") +
+    theme_void()
+```
+
+
+```{r, eval = FALSE}
+ggsave("florida-sites.pdf", width = 10, height = 7)
+```
+
+
+
 ```{r listplots_function}
 
-list.plots <- list(rmarkplot, rmarkplot2, rmarkplot3)
-align_three_plots <- function(list.plots, family = "")
-{
-    require("dplyr")
-    gg <- ggplot()+
-        coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
-        annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
-        annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
-        annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
-        labs(x = NULL, y = NULL) +
-        theme_void()
+## list.plots <- list(rmarkplot, rmarkplot2, rmarkplot3)
+## align_three_plots <- function(list.plots, family = "")
+## {
+##     require("dplyr")
+##     gg <- ggplot()+
+##         coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
+##         annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
+##         annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
+##         annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
+##         labs(x = NULL, y = NULL) +
+##         theme_void()
 
-    ## DF with the coordinates of the 2 arrows
-    df.arrows <- data.frame(id=1:2,
-        x=c(45.6,45.4),
-        y=c(21.7,19.8),
-        xend=c(58,58),
-        yend=c(35,12))
+##     ## DF with the coordinates of the 2 arrows
+##     df.arrows <- data.frame(id=1:2,
+##         x=c(45.6,45.4),
+##         y=c(21.7,19.8),
+##         xend=c(58,58),
+##         yend=c(35,12))
     
-    gg <- gg +
-        geom_segment(data = df.arrows %>% filter(id==1),
-            aes(x=x,y=y,xend=xend,yend=yend),
-            arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
-        geom_segment(data = df.arrows %>% filter(id==2),
-            aes(x=x,y=y,xend=xend,yend=yend),
-            arrow = arrow(type="closed",length = unit(0.25,"cm")))
-}
+##     gg <- gg +
+##         geom_segment(data = df.arrows %>% filter(id==1),
+##             aes(x=x,y=y,xend=xend,yend=yend),
+##             arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
+##         geom_segment(data = df.arrows %>% filter(id==2),
+##             aes(x=x,y=y,xend=xend,yend=yend),
+##             arrow = arrow(type="closed",length = unit(0.25,"cm")))
+## }
 
 ```
 
@@ -420,9 +456,9 @@ The next code will allow up to make a simple empty square plot, that can be clon
 
 
 ```{r listplot_blankplot}
-p <- ggplot() +
-  theme_map() +
-  theme(panel.border = element_rect(color = "black", size = 0.5, fill = NA),aspect.ratio = 1)
+## p <- ggplot() +
+##   theme_map() +
+##   theme(panel.border = element_rect(color = "black", size = 0.5, fill = NA),aspect.ratio = 1)
 
 ```
 
@@ -431,12 +467,18 @@ p <- ggplot() +
 The function `mget` will clone the square plots three times. The `three` is just to combinge the `align_three_plots` function and the repetition plots in one argument. And the final step is to plot the function and the plots together. 
 
 ```{r listplot_finalplot}
-plots <- mget(rep("p", 3))
+## plots <- mget(rep("p", 3))
 
-three <- align_three_plots(plots)
+## three <- align_three_plots(plots)
 
-plot(three)
+## plot(three)
 ```
+
+
+
+
+
+
 
 # Maps an legend placement
 

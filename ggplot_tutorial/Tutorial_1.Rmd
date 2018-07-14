@@ -239,7 +239,7 @@ Now to make the final touches, the theme of the map can be edited to make it mor
 
 ```{r world-florida-final}
 ggplot(data = world) +
-    geom_sf(fill = "cornsilk") +
+    geom_sf(fill = "antiquewhite1") +
     geom_text(aes(LON, LAT, label = NAME), size = 4, hjust = "left",
         color = "darkblue", fontface = "bold", check_overlap = TRUE) +
     annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
@@ -253,7 +253,7 @@ ggplot(data = world) +
     ggtitle("Map of the Gulf of Mexico and the Caribbean Sea") +
     theme(panel.grid.major = element_line(color = gray(.5),
         linetype = "dashed", size = 0.5),
-        panel.background = element_rect(fill = "lightskyblue1"))
+        panel.background = element_rect(fill = "aliceblue"))
 ```
 
 

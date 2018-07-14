@@ -289,7 +289,7 @@ For the final map, we put everything together, having a general background map b
 ```{r layers-final-plot, fig.width = 9, out.width = "75%"}
 library("ggspatial")
 ggplot(data = world) +
-    geom_sf(fill = "cornsilk") +
+    geom_sf(fill = "antiquewhite1") +
     geom_sf(data = counties, aes(fill = area)) +
     geom_sf(data = states, fill = NA) + 
     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
@@ -308,7 +308,7 @@ ggplot(data = world) +
     xlab("Longitude") + ylab("Latitude") +
     ggtitle("Observation Sites", subtitle = "(2 sites in Palm Beach County, Florida)") +
     theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
-        size = 0.5), panel.background = element_rect(fill = "lightskyblue1"))
+        size = 0.5), panel.background = element_rect(fill = "aliceblue"))
 ```
 
 This example fully demonstrates that adding layers on `ggplot2` is relatively straightforward, as long as the data is properly stored in an `sf` object. Adding additional layers would simply follow the same logic, with additional calls to `geom_sf` at the right place in the `ggplot2` sequence.
