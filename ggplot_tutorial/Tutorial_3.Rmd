@@ -39,7 +39,7 @@ library("ggmap")
 library("ggrepel")
 ## Tutorial #3
 library("grid")
-## library("cowplot")                      # Not loaded, as it changes ggplot theme
+library("cowplot")
 ```
 
 
@@ -108,45 +108,117 @@ class(world)
 ```
 
 
+# General concepts
+
+2 solutions:
+
+* Grobs (graphic objects, allow plots only in plot region, based on coordinates): directly using `ggplot2`
+* `ggdraw` (allows plots anywhere, including outer margins, based on relative position): package `cowplot`
+
+Example illustrating the difference between the two, and their use:
+
+```{r inset-example-qplot}
+(g1  <- qplot(0:10, 0:10))
+```
+
+```{r inset-example-qplot-void, fig.width = 3, fig.height = 3, out.width = "35%"}
+(g1_void <- g1 + theme_void() + theme(panel.border = element_rect(colour = "black", 
+    fill = NA)))
+```
+
+Graphs from `ggplot2` can be saved, like any other R object. They can then be reused later in other functions.
+
+Using grobs, and `annotation_custom`:
+
+```{r inset-example-grobs}
+g1 +
+    annotation_custom(
+        grob = ggplotGrob(g1_void),
+        xmin = 0,
+        xmax = 3,
+        ymin = 5,
+        ymax = 10
+    ) +
+    annotation_custom(
+        grob = ggplotGrob(g1_void),
+        xmin = 5,
+        xmax = 10,
+        ymin = 0,
+        ymax = 3
+    )
+```
+
+Using `ggdraw` (note: used to build on top of initial plot; could be left empty to arrange subplots on a grid; plots are "filled" with their plots, unless the plot itself has a constrained ratio, like a map):
+
+```{r inset-example-ggdraw}
+ggdraw(g1) +
+    draw_plot(g1_void, width = 0.25, height = 0.5, x = 0.02, y = 0.48) +
+    draw_plot(g1_void, width = 0.5, height = 0.25, x = 0.75, y = 0.09)
+```
+
+
 # Several maps side by side or on a grid
 
-<!-- Text of the section to rework entirely -->
+<!-- Text of the section to rework entirely. I left your text below the new example. -->
 
-Example using two maps side by side, with a common legend in the
-middle (three graph elements side by side).
+Example using two maps side by side, including the legend of the first one. Illustrates how to use a custom grid, which can be made a lot more complex with different elements.
 
-The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
+First simplify `REGION` for the legend:
 
-```{r grid, fig.width = 15, fig.height = 5, out.width = "90%"}
-levels(world$REGION)[7] <- "South America" # Simplification for the legend
+```{r grid-region}
+levels(world$REGION)[7] <- "South America"
+```
 
-gworld <- ggplot(data = world) +
-    geom_sf(aes(fill = REGION)) +
-    geom_rect(xmin = -100, xmax = -75, ymin = 12, ymax = 35, fill = NA, 
-        colour = "black", size = 1.5) +
-    scale_fill_viridis_d(option = "plasma") +
-    theme(panel.background = element_rect(fill = "azure"),
-        panel.border = element_rect(fill = NA))
+Prepare the subplots, #1 world:
 
-ggulf <- ggplot(data = world) +
-    geom_sf(aes(fill = REGION)) +
-    annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
-        fontface = "italic", color = "grey22", size = 6) +
-    coord_sf(xlim = c(-100, -75), ylim = c(12, 35), expand = FALSE) +
-    scale_fill_viridis_d(option = "plasma") +
-    theme(legend.position = "none", axis.title.x = element_blank(), 
-        axis.title.y = element_blank(), panel.background = element_rect(fill = "azure"), 
-        panel.border = element_rect(fill = NA))
+```{r grid-world, fig.width = 12, fig.height = 5, out.width = "90%"}
+(gworld <- ggplot(data = world) +
+     geom_sf(aes(fill = REGION)) +
+     geom_rect(xmin = -102.15, xmax = -74.12, ymin = 7.65, ymax = 33.97, 
+         fill = NA, colour = "black", size = 1.5) +
+     scale_fill_viridis_d(option = "plasma") +
+     theme(panel.background = element_rect(fill = "azure"),
+         panel.border = element_rect(fill = NA)))
+```
 
+And #2 Gulf:
+
+```{r grid-gulf}
+(ggulf <- ggplot(data = world) +
+     geom_sf(aes(fill = REGION)) +
+     annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
+         fontface = "italic", color = "grey22", size = 6) +
+     coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE) +
+     scale_fill_viridis_d(option = "plasma") +
+     theme(legend.position = "none", axis.title.x = element_blank(), 
+         axis.title.y = element_blank(), panel.background = element_rect(fill = "azure"), 
+         panel.border = element_rect(fill = NA)))
+```
+
+Final map using ggplot only (explain trick with empty ggplot first, constrained by `coord_equal` to give delineations of the plot region, where to add the grobs):
+
+```{r grid-grobs, fig.width = 15, fig.height = 5, out.width = "90%"}
+ggplot() +
+    coord_equal(xlim = c(0, 3.3), ylim = c(0, 1), expand = FALSE) +
+    annotation_custom(ggplotGrob(gworld), xmin = 0, xmax = 2.3, ymin = 0, 
+        ymax = 1) +
+    annotation_custom(ggplotGrob(ggulf), xmin = 2.3, xmax = 3.3, ymin = 0, 
+        ymax = 1) +
+    theme_void()
+```
+
+Final plot using `plot_grid` (`cowplot`): explain the grid (nrow, ncol, rel_widths, etc.)
+
+```{r grid-plot-grid, fig.width = 15, fig.height = 5, out.width = "90%"}
 library("cowplot")
 theme_set(theme_bw())
 
 plot_grid(gworld, ggulf, nrow = 1, rel_widths = c(2.3, 1))
 ```
 
-Explain `plot_grid` from `cowplot`, and how this can be used to plot any ggplot objects together on a predefined grid (see https://cran.r-project.org/web/packages/cowplot/vignettes/plot_grid.html)
+Explain how this can be used to plot any ggplot objects together on a predefined grid (see https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html and https://cran.r-project.org/web/packages/cowplot/vignettes/plot_grid.html)
 
-Note also the existence of `get_legend`, and that the legend can be used as any object.
+Note also the existence of `get_legend` (`cowplot`), and that the legend can be used as any object.
 
 `ggsave` OK here.
 
@@ -154,6 +226,10 @@ Note also the existence of `get_legend`, and that the legend can be used as any 
 ggsave("grid.pdf", width = 15, height =  5)
 ```
 
+
+---
+
+The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
 
 The function `get_legend`, will grab any legend from any `ggplot` map, or graph. In the function `plot_grid`, the maps that were created,  Map1 and Map2, will be plotted with their associated themes. In this case there is no theme or position, but the option is available. The command `rel_widths`, will specify the size of each pane of the `plot_grid`. The legend will be placed in the middle, and requires the largest size. 
 
@@ -176,109 +252,13 @@ The final map will have the legend "grobbed" and added to the `prow` plot. The f
 
 # Map insets
 
-<!-- Text of the section to rework entirely -->
-
-The `print` command can be used place multiple maps in one map graphic. Essentially the `print` command <!-- end of sentence missing! -->
-This can be a useful and easy way to enhance the information you need to display.  
-
-```{r print_mapsdata, include=FALSE}
-## rmarkplot <- ggplot(data = world) +
-##     geom_sf(fill = "antiquewhite1") +
-##     annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
-##         color = "grey22", size = 4.5) +
-##     coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
-##     xlab("Longitude")+ ylab("Latitude") +
-##     theme_classic() + 
-##     theme(legend.position = "none", panel.grid.major = element_line(colour = gray(0.5), 
-##         linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
-##         panel.border = element_rect(fill = NA))
-
-## library("ggthemes")
-## rmarkplot2 <- ggplot(data = world) + 
-##   geom_sf(fill="antiquewhite1") +
-##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
-##     ggtitle ("Location A") + 
-##   xlab("Longitude")+ ylab("Latitude") +
-##   theme_map() + 
-##   theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
-
-## rmarkplot3<- 
-##   ggplot(data=world)+
-##   geom_sf(fill="antiquewhite1") +
-##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
-##   ggtitle ("Location B") + 
-##   xlab("Longitude")+ ylab("Latitude") +
-##   theme_map() + 
-##   theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
-```
-
-To specify where each plot is displayed with the  `print` function, the argument `viewport` needs to specify the maximum width and height of each map, and the minimum x and y coordinates of where the maps are located. The argument `just` will make a position on how the secondary maps will be displayed. All maps are the same size, until the sizes are adjusted with `width` and `height`.
-
-```{r print_vp}
-## vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
-## vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
-```
-
-Now the `print` function can be used the previous specifications that were listed in each plots' `viewport`. 
-
-```{r print_finalmap}
-## print(rmarkplot)
-## print(rmarkplot2, vp=vp)
-## print(rmarkplot3, vp=vp1)
-```
-
-
-2 solutions:
-
-* `ggdraw` (allows plots anywhere, including outer margins, based on relative position): package `cowplot`
-* Grobs (graphic objects, allow plots only in plot region, based on coordinates): directly using `ggplot2`
-
-Example illustrating the difference between the two, and their use:
-
-```{r inset-example-qplot}
-(g1  <- qplot(0:10, 0:10))
-(g1_void <- g1 + theme_void() + theme(panel.border = element_rect(colour = "black", 
-    fill = NA)))
-```
-
-Graphs from `ggplot2` can be saved, like any other R object. They can then be reused later in other functions.
-
-Using `ggdraw` (note: used to build on top of initial plot; could be left empty to arrange subplots on a grid; plots are "filled" with their plots, unless the plot itself has a constrained ratio, like a map):
-
-```{r inset-example-ggdraw}
-ggdraw(g1) +
-    draw_plot(g1_void, width = 0.25, height = 0.5, x = 0.02, y = 0.48) +
-    draw_plot(g1_void, width = 0.5, height = 0.25, x = 0.75, y = 0.09)
-```
-
-Using grobs, and `annotation_custom`:
-
-```{r inset-example-grobs}
-gg1 <- ggplotGrob(g1)
-gg1_void  <- ggplotGrob(g1_void)
-
-g1 +
-    annotation_custom(
-        grob = gg1_void,
-        xmin = 0,
-        xmax = 3,
-        ymin = 5,
-        ymax = 10
-    ) +
-    annotation_custom(
-        grob = gg1_void,
-        xmin = 5,
-        xmax = 10,
-        ymin = 0,
-        ymax = 3
-    )
-```
+<!-- Text of the section to rework entirely. I left your text below the new example. -->
 
 Hence for map insets directly on the background map, both solutions are viable (and one might prefer one or the other depending on relative or absolute coordinates).
 
-Map example using map of the 50 states of the US, including Alaska and Hawaii (note: not to scale for the latter), using reference projections for US maps:
+Map example using map of the 50 states of the US, including Alaska and Hawaii (note: not to scale for the latter), using reference projections for US maps. First map (continental states) use a 10/6 figure:
 
-```{r inset-usa}
+```{r inset-usa, fig.width = 10, fig.height = 6, out.width = "90%"}
 usa <- subset(world, ADMIN == "United States of America")
 ## US National Atlas Equal Area (2163)
 ## http://spatialreference.org/ref/epsg/us-national-atlas-equal-area/
@@ -290,7 +270,7 @@ usa <- subset(world, ADMIN == "United States of America")
 
 Alaska (note: `datum = NA` removes graticules and coordinates):
 
-```{r inset-alaska}
+```{r inset-alaska, fig.width = 10, fig.height = 6}
 ## Alaska: NAD83(NSRS2007) / Alaska Albers (3467)
 ## http://www.spatialreference.org/ref/epsg/3467/
 (alaska <- ggplot(data = usa) +
@@ -301,7 +281,7 @@ Alaska (note: `datum = NA` removes graticules and coordinates):
 
 Hawaii:
 
-```{r inset-hawaii}
+```{r inset-hawaii, fig.width = 10, fig.height = 7}
 ## Hawaii: Old Hawaiian (4135)
 ## http://www.spatialreference.org/ref/epsg/4135/
 (hawaii  <- ggplot(data = usa) +
@@ -356,9 +336,160 @@ ggsave("map-inset-grobs.pdf", width = 10, height = 6)
 ```
 
 
+---
+
+The `print` command can be used place multiple maps in one map graphic. Essentially the `print` command <!-- end of sentence missing! -->
+This can be a useful and easy way to enhance the information you need to display.  
+
+```{r print_mapsdata, include=FALSE}
+## rmarkplot <- ggplot(data = world) +
+##     geom_sf(fill = "antiquewhite1") +
+##     annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
+##         color = "grey22", size = 4.5) +
+##     coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8), expand = TRUE) +
+##     xlab("Longitude")+ ylab("Latitude") +
+##     theme_classic() + 
+##     theme(legend.position = "none", panel.grid.major = element_line(colour = gray(0.5), 
+##         linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+##         panel.border = element_rect(fill = NA))
+
+## library("ggthemes")
+## rmarkplot2 <- ggplot(data = world) + 
+##   geom_sf(fill="antiquewhite1") +
+##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.63, 26.9), expand=TRUE ) +
+##     ggtitle ("Location A") + 
+##   xlab("Longitude")+ ylab("Latitude") +
+##   theme_map() + 
+##   theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
+
+## rmarkplot3<- 
+##   ggplot(data=world)+
+##   geom_sf(fill="antiquewhite1") +
+##   coord_sf(xlim = c(-80.30, -80.00 ), ylim = c(26.62, 26.35), expand=TRUE ) + 
+##   ggtitle ("Location B") + 
+##   xlab("Longitude")+ ylab("Latitude") +
+##   theme_map() + 
+##   theme(legend.position = "none", panel.grid.major = element_line(colour = gray(.5), linetype = "dashed", size = 0.5),panel.background = element_rect(fill = "aliceblue"), panel.border=element_rect(fill=NA),text=element_text(size=6))
+```
+
+To specify where each plot is displayed with the  `print` function, the argument `viewport` needs to specify the maximum width and height of each map, and the minimum x and y coordinates of where the maps are located. The argument `just` will make a position on how the secondary maps will be displayed. All maps are the same size, until the sizes are adjusted with `width` and `height`.
+
+```{r print_vp}
+## vp <- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.45, just = c("left","bottom")) 
+## vp1<- viewport(width = 0.37, height = 0.32, x = 0.22, y =0.15, just = c("left","bottom")) 
+```
+
+Now the `print` function can be used the previous specifications that were listed in each plots' `viewport`. 
+
+```{r print_finalmap}
+## print(rmarkplot)
+## print(rmarkplot2, vp=vp)
+## print(rmarkplot3, vp=vp1)
+```
+
+
 # Several maps connected with arrows
 
-<!-- Text of the section to rework entirely -->
+<!-- Text of the section to rework entirely. I left your text below the new example. -->
+
+Site coordinates, same as tuto #1:
+
+```{r map-arrows-sites}
+sites <- st_as_sf(data.frame(longitude = c(-80.15, -80.1), latitude = c(26.5, 
+    26.8)), coords = c("longitude", "latitude"), crs = 4326, 
+    agr = "constant")
+```
+
+Maps to be used finally: #1 Florida:
+
+```{r map-arrows-florida}
+(florida <- ggplot(data = world) +
+     geom_sf(fill = "antiquewhite1") +
+     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+     annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
+         color = "grey22", size = 4.5) +
+     coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8)) +
+     xlab("Longitude")+ ylab("Latitude")+
+     theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
+         size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+         panel.border = element_rect(fill = NA)))
+```
+
+#2 Site A
+
+```{r map-arrows-sitea, fig.width = 3, fig.height = 3, out.width = "35%"}
+(siteA <- ggplot(data = world) +
+     geom_sf(fill = "antiquewhite1") +
+     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+     coord_sf(xlim = c(-80.25, -79.95), ylim = c(26.65, 26.95), expand = FALSE) + 
+     annotate("text", x = -80.18, y = 26.92, label= "Site A", size = 6) + 
+     theme_void() + 
+     theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
+         size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+         panel.border = element_rect(fill = NA)))
+```
+
+#3 Site B
+
+```{r map-arrows-siteb, fig.width = 3, fig.height = 3, out.width = "35%"}
+(siteB <- ggplot(data = world) + 
+     geom_sf(fill = "antiquewhite1") +
+     geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
+     coord_sf(xlim = c(-80.3, -80), ylim = c(26.35, 26.65), expand = FALSE) +
+     annotate("text", x = -80.23, y = 26.62, label= "Site B", size = 6) + 
+     theme_void() +
+     theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
+         size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
+         panel.border = element_rect(fill = NA)))
+```
+
+Coordinates of the 2 arrows:
+
+```{r map-arrows-arrows}
+arrowA <- data.frame(x1 = 18.5, x2 = 23, y1 = 9.5, y2 = 14.5)
+arrowB <- data.frame(x1 = 18.5, x2 = 23, y1 = 8.5, y2 = 6.5)
+```
+
+Final map (`ggplot` only):
+
+```{r map-arrows-plot, fig.width = 10, fig.height = 7, out.width = "90%"}
+ggplot() +
+    coord_equal(xlim = c(0, 28), ylim = c(0, 20), expand = FALSE) +
+    annotation_custom(ggplotGrob(florida), xmin = 0, xmax = 20, ymin = 0, 
+        ymax = 20) +
+    annotation_custom(ggplotGrob(siteA), xmin = 20, xmax = 28, ymin = 11.25, 
+        ymax = 19) +
+    annotation_custom(ggplotGrob(siteB), xmin = 20, xmax = 28, ymin = 2.5, 
+        ymax = 10.25) +
+    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowA, 
+        arrow = arrow(), lineend = "round") +
+    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowB, 
+        arrow = arrow(), lineend = "round") +
+    theme_void()
+```
+
+`ggsave` works OK.
+
+```{r, eval = FALSE}
+ggsave("florida-sites.pdf", width = 10, height = 7)
+```
+
+`ggdraw` could also be used for a similar result:
+
+```{r map-arrows-ggdraw, fig.width = 10, fig.height = 7, out.width = "90%"}
+ggdraw(xlim = c(0, 28), ylim = c(0, 20)) +
+    draw_plot(florida, x = 0, y = 0, width = 20, height = 20) +
+    draw_plot(siteA, x = 20, y = 11.25, width = 8, height = 8) +
+    draw_plot(siteB, x = 20, y = 2.5, width = 8, height = 8) +
+    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowA, 
+        arrow = arrow(), lineend = "round") +
+    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowB, 
+        arrow = arrow(), lineend = "round")
+```
+
+
+
+---
 
 Having a way to emphasize locations on a map can also be a graphic that would be useful for biologists. The next steps will be to create blank sqaure plots that will make the map visualization interesting and accurate. In the following map, arrows will point to specific locations.
 
@@ -388,77 +519,6 @@ The `list.plots`, is a simple list command to combine all of the previously crea
 Afterwards, a function is created to create a custom annotation of each plot, with their corresponding x-min and x-max coordinates. From the bottom left corner of the image, it would be considered 0,0 if it was compared to a mathematical graph. 
 
 The `df.arrows` has the beginning and ending locations of each line. If this case, there are two lines, but more lines can be created by adding more starting locations for `x=` and `y=`. 
-
-
-
-```{r map-arrows-sites}
-sites <- st_as_sf(data.frame(longitude = c(-80.15, -80.1), latitude = c(26.5, 
-    26.8)), coords = c("longitude", "latitude"), crs = 4326, 
-    agr = "constant")
-```
-
-
-```{r map-arrows-maps}
-florida <- ggplot(data = world) +
-    geom_sf(fill = "antiquewhite1") +
-    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-    annotate(geom = "text", x = -85.5, y = 27.5, label = "Gulf of Mexico", 
-        color = "grey22", size = 4.5) +
-    coord_sf(xlim = c(-87.35, -79.5), ylim = c(24.1, 30.8)) +
-    xlab("Longitude")+ ylab("Latitude")+
-    theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
-        size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
-        panel.border = element_rect(fill = NA))
-
-siteA <- ggplot(data = world) +
-    geom_sf(fill = "antiquewhite1") +
-    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-    coord_sf(xlim = c(-80.25, -79.95), ylim = c(26.65, 26.95), expand = FALSE) + 
-    annotate("text", x = -80.18, y = 26.92, label= "Site A", size = 6) + 
-    theme_void() + 
-    theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
-        size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
-        panel.border = element_rect(fill = NA))
-
-siteB <- ggplot(data = world) + 
-    geom_sf(fill = "antiquewhite1") +
-    geom_sf(data = sites, size = 4, shape = 23, fill = "darkred") +
-    coord_sf(xlim = c(-80.3, -80), ylim = c(26.35, 26.65), expand = FALSE) +
-    annotate("text", x = -80.23, y = 26.62, label= "Site B", size = 6) + 
-    theme_void() +
-    theme(panel.grid.major = element_line(colour = gray(0.5), linetype = "dashed", 
-        size = 0.5), panel.background = element_rect(fill = "aliceblue"), 
-        panel.border = element_rect(fill = NA))
-```
-
-DF with the coordinates of the 2 arrows:
-
-```{r map-arrows-arrows}
-arrowA <- data.frame(x1 = 18.5, x2 = 23, y1 = 9.5, y2 = 14.5)
-arrowB <- data.frame(x1 = 18.5, x2 = 23, y1 = 8.5, y2 = 6.5)
-```
-
-
-```{r map-arrows-plot, fig.width = 10, fig.height = 7, out.width = "90%"}
-ggplot() +
-    coord_equal(xlim = c(0, 28), ylim = c(0, 20), expand = FALSE) +
-    annotation_custom(ggplotGrob(florida), xmin = 0, xmax = 20, ymin = 0, ymax = 20) +
-    annotation_custom(ggplotGrob(siteA), xmin = 20, xmax = 28, ymin = 11.25, ymax = 19) +
-    annotation_custom(ggplotGrob(siteB), xmin = 20, xmax = 28, ymin = 2.5, ymax = 10.25) +
-    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowA, 
-        arrow = arrow(), lineend = "round") +
-    geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowB, 
-        arrow = arrow(), lineend = "round") +
-    theme_void()
-```
-
-
-```{r, eval = FALSE}
-ggsave("florida-sites.pdf", width = 10, height = 7)
-```
-
-`ggdraw` could also be used for a similar result.
-
 
 
 ```{r listplots_function}
