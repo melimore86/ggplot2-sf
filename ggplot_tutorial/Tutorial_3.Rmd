@@ -39,6 +39,7 @@ library("ggmap")
 library("ggrepel")
 ## Tutorial #3
 library("grid")
+## library("cowplot")                      # Not loaded, as it changes ggplot theme
 ```
 
 
@@ -78,8 +79,8 @@ After the presentation of the basic map concepts, and the flexible approach in l
 Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. The full list of packages necessary for this series of tutorials can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("ggmap", "ggplot2", "ggrepel", "ggspatial", 
-    "libwgeom", "sf", "rworldmap", "rworldxtra"))
+install.packages(c("cowplot", "ggmap", "ggplot2", "ggrepel", 
+    "ggspatial", "libwgeom", "sf", "rworldmap", "rworldxtra"))
 ```
 
 We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
@@ -104,6 +105,72 @@ The world map is available as a `SpatialPolygonsDataFrame` from the package `sp`
 ```{r world-sf}
 world <- st_as_sf(world)
 class(world)
+```
+
+
+# Several maps side by side or on a grid
+
+<!-- Text of the section to rework entirely -->
+
+Example using two maps side by side, with a common legend in the
+middle (three graph elements side by side).
+
+The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
+
+```{r grid, fig.width = 15, fig.height = 5, out.width = "90%"}
+levels(world$REGION)[7] <- "South America" # Simplification for the legend
+
+gworld <- ggplot(data = world) +
+    geom_sf(aes(fill = REGION)) +
+    geom_rect(xmin = -100, xmax = -75, ymin = 12, ymax = 35, fill = NA, 
+        colour = "black", size = 1.5) +
+    scale_fill_viridis_d(option = "plasma") +
+    theme(panel.background = element_rect(fill = "azure"),
+        panel.border = element_rect(fill = NA))
+
+ggulf <- ggplot(data = world) +
+    geom_sf(aes(fill = REGION)) +
+    annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
+        fontface = "italic", color = "grey22", size = 6) +
+    coord_sf(xlim = c(-100, -75), ylim = c(12, 35), expand = FALSE) +
+    scale_fill_viridis_d(option = "plasma") +
+    theme(legend.position = "none", axis.title.x = element_blank(), 
+        axis.title.y = element_blank(), panel.background = element_rect(fill = "azure"), 
+        panel.border = element_rect(fill = NA))
+
+library("cowplot")
+theme_set(theme_bw())
+
+plot_grid(gworld, ggulf, nrow = 1, rel_widths = c(2.3, 1))
+```
+
+Explain `plot_grid` from `cowplot`, and how this can be used to plot any ggplot objects together on a predefined grid (see https://cran.r-project.org/web/packages/cowplot/vignettes/plot_grid.html)
+
+Note also the existence of `get_legend`, and that the legend can be used as any object.
+
+`ggsave` OK here.
+
+```{r, eval = FALSE}
+ggsave("grid.pdf", width = 15, height =  5)
+```
+
+
+The function `get_legend`, will grab any legend from any `ggplot` map, or graph. In the function `plot_grid`, the maps that were created,  Map1 and Map2, will be plotted with their associated themes. In this case there is no theme or position, but the option is available. The command `rel_widths`, will specify the size of each pane of the `plot_grid`. The legend will be placed in the middle, and requires the largest size. 
+
+
+```{r legendmap_prow}
+## library("cowplot")
+## theme_set(theme_bw())
+
+## legend <- get_legend(LegendMap+ theme(legend.position="left") )
+## plot_grid(NorthAmerica, legend, Europe, nrow = 1, rel_widths = c(1, 
+##     1.5, 1))
+```
+
+The final map will have the legend "grobbed" and added to the `prow` plot. The first argument is the `legend`, that was taken previously with `get_legend`, and after the first set of restrictions are the left position, the height, and the right position. The positions might have to be tested a few times to check on how accurate the placement is. 
+
+```{r legendmap_final}
+## prow + draw_grob(legend, 2/4,0/8, 0.003) # No need for a grob.
 ```
 
 
@@ -163,33 +230,25 @@ Now the `print` function can be used the previous specifications that were liste
 
 2 solutions:
 
-* Viewports (allow plots anywhere, including outer margins, based on relative position): package `grid`
+* `ggdraw` (allows plots anywhere, including outer margins, based on relative position): package `cowplot`
 * Grobs (graphic objects, allow plots only in plot region, based on coordinates): directly using `ggplot2`
 
 Example illustrating the difference between the two, and their use:
 
 ```{r inset-example-qplot}
-g1  <- qplot(0:10, 0:10)
-g1_void <- g1 + theme_void() + theme(panel.border = element_rect(colour = "black", fill=NA))
+(g1  <- qplot(0:10, 0:10))
+(g1_void <- g1 + theme_void() + theme(panel.border = element_rect(colour = "black", 
+    fill = NA)))
 ```
 
-Graphs from `ggplot2` can be saved, in which case they are not print. Calling their name, or using `print` plots them, the latter allowing for more options:
+Graphs from `ggplot2` can be saved, like any other R object. They can then be reused later in other functions.
 
-```{r inset-example-print, out.width = "45%"}
-print(g1)
-print(g1_void)
-```
+Using `ggdraw` (note: used to build on top of initial plot; could be left empty to arrange subplots on a grid; plots are "filled" with their plots, unless the plot itself has a constrained ratio, like a map):
 
-Using viewports (note: initial viewport takes the entire plot, from 0 to 1 on both axes; viewports are "filled" with their plots, unless the plot itself has a constrained ratio, like a map):
-
-```{r inset-example-viewports}
-library("grid")
-vp_topleft <- viewport(width = 0.25, height = 0.5, x = 0.02, y = 0.98, just = c("left", "top"))
-vp_bottomright <- viewport(width = 0.5, height = 0.25, x = 1, y = 0.09, just = c("center", "bottom"))
-
-print(g1)
-print(g1_void, vp = vp_topleft)
-print(g1_void, vp = vp_bottomright)
+```{r inset-example-ggdraw}
+ggdraw(g1) +
+    draw_plot(g1_void, width = 0.25, height = 0.5, x = 0.02, y = 0.48) +
+    draw_plot(g1_void, width = 0.5, height = 0.25, x = 0.75, y = 0.09)
 ```
 
 Using grobs, and `annotation_custom`:
@@ -251,32 +310,23 @@ Hawaii:
          23), expand = FALSE, datum = NA))
 ```
 
-Using viewports (tricky to define exact positions; note the use of the ratios of the inset, combined with the ratio of the plot):
+Using `ggdraw` from `cowplot` (tricky to define exact positions; note the use of the ratios of the inset, combined with the ratio of the plot):
 
-```{r inset-viewports, fig.width = 10, fig.height = 6, out.width = "90%"}
-xdiffAlaska <- 1600000 - (-2400000)
-ydiffAlaska <- 2500000 - 200000
-(ratioAlaska <- ydiffAlaska / xdiffAlaska)
-vp_alaska <- viewport(width = 0.26, height = 0.26*10/6*ratioAlaska, x = 0.05, y = 0.05, just = c("left", "bottom"))
+```{r inset-ggdraw, fig.width = 10, fig.height = 6, out.width = "90%"}
+(ratioAlaska <- (2500000 - 200000) / (1600000 - (-2400000)))
+(ratioHawaii  <- (23 - 18) / (-154 - (-161)))
 
-xdiffHawaii <- -154 - (-161)
-ydiffHawaii  <- 23 - 18
-(ratioHawaii  <- ydiffHawaii / xdiffHawaii)
-vp_hawaii <- viewport(width = 0.15, height = 0.15*10/6*ratioHawaii, x = 0.3, y = 0.05, just = c("left", "bottom"))
-
-print(mainland)
-print(alaska, vp = vp_alaska)
-print(hawaii, vp = vp_hawaii)
+ggdraw(mainland) +
+    draw_plot(alaska, width = 0.26, height = 0.26 * 10/6 * ratioAlaska, 
+        x = 0.05, y = 0.05) +
+    draw_plot(hawaii, width = 0.15, height = 0.15 * 10/6 * ratioHawaii, 
+        x = 0.3, y = 0.05)
 ```
 
-`ggsave` only takes last viewport; solution with specific device (`png`, `pdf`, …)
+`ggsave` OK:
 
-```{r inset-viewports-save, eval = FALSE}
-png(filename = "map-us-viewports.png", width = 10, height = 6, units = "in", res = 300)
-print(mainland)
-print(alaska, vp = vp_alaska)
-print(hawaii, vp = vp_hawaii)
-dev.off()
+```{r inset-ggdraw-save, eval = FALSE}
+ggsave("map-us-ggdraw.pdf", width = 10, height = 6)
 ```
 
 Same using grobs (note the use of xdiff/ydiff and arbitrary ratios):
@@ -286,32 +336,24 @@ mainland +
     annotation_custom(
         grob = ggplotGrob(alaska),
         xmin = -2750000,
-        xmax = -2750000 + xdiffAlaska/2.5,
+        xmax = -2750000 + (1600000 - (-2400000))/2.5,
         ymin = -2450000,
-        ymax = -2450000 + ydiffAlaska/2.5
+        ymax = -2450000 + (2500000 - 200000)/2.5
     ) +
     annotation_custom(
         grob = ggplotGrob(hawaii),
         xmin = -1250000,
-        xmax = -1250000 + xdiffHawaii*120000,
+        xmax = -1250000 + (-154 - (-161))*120000,
         ymin = -2450000,
-        ymax = -2450000 + ydiffHawaii*120000
+        ymax = -2450000 + (23 - 18)*120000
     )
 ```
 
 Save OK with `ggsave`:
 
 ```{r inset-grobs-save, eval = FALSE}
-ggsave("map-inset-grobs.pdf")
+ggsave("map-inset-grobs.pdf", width = 10, height = 6)
 ```
-
-
-# Several maps side by side or on a grid
-
-<!-- Text of the section to rework entirely -->
-
-****************
-
 
 
 # Several maps connected with arrows
@@ -415,6 +457,8 @@ ggplot() +
 ggsave("florida-sites.pdf", width = 10, height = 7)
 ```
 
+`ggdraw` could also be used for a similar result.
+
 
 
 ```{r listplots_function}
@@ -472,62 +516,4 @@ The function `mget` will clone the square plots three times. The `three` is just
 ## three <- align_three_plots(plots)
 
 ## plot(three)
-```
-
-
-
-
-
-
-
-# Maps an legend placement
-
-The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
-
-```{r legendmap}
-LegendMap <- ggplot(data = world) +
-  geom_sf(aes(fill=REGION)) +
-  scale_fill_viridis_d(option="plasma")
-```
-
-```{r legendmap_maps, include=FALSE}
-Map1 <- ggplot(data = world) +
-  geom_sf(aes(fill=REGION)) +
-  coord_sf(xlim = c(-10.00, 40.00), ylim = c(20.00, 50.00), expand=TRUE) +
-  scale_fill_viridis_d(option="plasma") +
-  guides(fill=guide_legend(show=FALSE)) +
-  theme_map() +
-  theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
-
-Map2 <- ggplot(data = world) +
-  geom_sf(aes(fill=REGION)) +
-  coord_sf(xlim = c(-100.00,-60.00 ), ylim = c(20.00, 50.00), expand=TRUE) +
-  scale_fill_viridis_d(option="plasma") +
-  guides(fill=guide_legend(show=FALSE)) +
-  theme_map() +
-  theme(legend.position= "none", panel.grid.major = element_line(colour = "azure", linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "azure"), panel.border=element_rect(fill=NA),plot.title = element_text(size=16, face="bold"))
-
-```
-
-The function `get_legend`, will grab any legend from any `ggplot` map, or graph. In the function `plot_grid`, the maps that were created,  Map1 and Map2, will be plotted with their associated themes. In this case there is no theme or position, but the option is available. The command `rel_widths`, will specify the size of each pane of the `plot_grid`. The legend will be placed in the middle, and requires the largest size. 
-
-
-```{r legendmap_prow}
-
-library("cowplot")
-legend <- get_legend(LegendMap+ theme(legend.position="left") )
-
-
-prow <- plot_grid( Map1 + theme(legend.position="none"), 
-                   NULL, Map2 + theme(legend.position="none"),
-                   nrow = 1,
-                   rel_widths = c(1, 1.5, 1)
-)
-
-```
-
-The final map will have the legend "grobbed" and added to the `prow` plot. The first argument is the `legend`, that was taken previously with `get_legend`, and after the first set of restrictions are the left position, the height, and the right position. The positions might have to be tested a few times to check on how accurate the placement is. 
-
-```{r legendmap_final}
-prow + draw_grob(legend, 2/4,0/8, 0.003) 
 ```
