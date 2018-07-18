@@ -158,10 +158,10 @@ ggdraw(g1) +
 
 
 # Several maps side by side or on a grid
+ 
+Having a way show in a visualization, a specific area can be very useful. Many scientists usually create maps for each specific area manually. This is fine, but there are simpler ways to display what is needed for a report, or publication. 
 
-<!-- Text of the section to rework entirely. I left your text below the new example. -->
-
-Example using two maps side by side, including the legend of the first one. Illustrates how to use a custom grid, which can be made a lot more complex with different elements.
+This exmaple is using two maps side by side, including the legend of the first one. It illustrates how to use a custom grid, which can be made a lot more complex with different elements.
 
 First simplify `REGION` for the legend:
 
@@ -197,7 +197,7 @@ And #2 Gulf:
 
 Final map using ggplot only (explain trick with empty ggplot first, constrained by `coord_equal` to give delineations of the plot region, where to add the grobs):
 
-```{r grid-grobs, fig.width = 15, fig.height = 5, out.width = "90%"}
+```{r grid-grobs, fig.width = 15, fig.height = 5, out.width = "90%"} 
 ggplot() +
     coord_equal(xlim = c(0, 3.3), ylim = c(0, 1), expand = FALSE) +
     annotation_custom(ggplotGrob(gworld), xmin = 0, xmax = 2.3, ymin = 0, 
@@ -216,45 +216,23 @@ theme_set(theme_bw())
 plot_grid(gworld, ggulf, nrow = 1, rel_widths = c(2.3, 1))
 ```
 
-Explain how this can be used to plot any ggplot objects together on a predefined grid (see https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html and https://cran.r-project.org/web/packages/cowplot/vignettes/plot_grid.html)
+Using `plot_grid(cowplot)` to arrange `ggplot` figures, is versatile. Any `ggplot` figure can be arranged just like the figure above. There are many commands that allow for the plot to have different placements, such as `nrow=1` means that the figure will only occpuy one row and muitple columns, and `ncol=1` means the figure will be plotted on one column and multplie rows. Some other commands can adjust the position of the figures such as adding `align=v` to align vertically on the left axis, and `align=h` to align horiztonally. 
 
 Note also the existence of `get_legend` (`cowplot`), and that the legend can be used as any object.
 
-`ggsave` OK here.
-
+`ggsave` OK to be used here.
+ 
 ```{r, eval = FALSE}
 ggsave("grid.pdf", width = 15, height =  5)
 ```
 
-
 ---
-
-The map created below will have a legend placed in the center. First a legend must be create. The map itself with the legend, doesn't have to be accurate, but the legend must be. 
-
-The function `get_legend`, will grab any legend from any `ggplot` map, or graph. In the function `plot_grid`, the maps that were created,  Map1 and Map2, will be plotted with their associated themes. In this case there is no theme or position, but the option is available. The command `rel_widths`, will specify the size of each pane of the `plot_grid`. The legend will be placed in the middle, and requires the largest size. 
-
-
-```{r legendmap_prow}
-## library("cowplot")
-## theme_set(theme_bw())
-
-## legend <- get_legend(LegendMap+ theme(legend.position="left") )
-## plot_grid(NorthAmerica, legend, Europe, nrow = 1, rel_widths = c(1, 
-##     1.5, 1))
-```
-
-The final map will have the legend "grobbed" and added to the `prow` plot. The first argument is the `legend`, that was taken previously with `get_legend`, and after the first set of restrictions are the left position, the height, and the right position. The positions might have to be tested a few times to check on how accurate the placement is. 
-
-```{r legendmap_final}
-## prow + draw_grob(legend, 2/4,0/8, 0.003) # No need for a grob.
-```
-
 
 # Map insets
 
 <!-- Text of the section to rework entirely. I left your text below the new example. -->
 
-Hence for map insets directly on the background map, both solutions are viable (and one might prefer one or the other depending on relative or absolute coordinates).
+For map insets directly on the background map, both solutions are viable (and one might prefer one or the other depending on relative or absolute coordinates).
 
 Map example using map of the 50 states of the US, including Alaska and Hawaii (note: not to scale for the latter), using reference projections for US maps. First map (continental states) use a 10/6 figure:
 
@@ -390,7 +368,6 @@ Now the `print` function can be used the previous specifications that were liste
 
 # Several maps connected with arrows
 
-<!-- Text of the section to rework entirely. I left your text below the new example. -->
 
 Site coordinates, same as tuto #1:
 
@@ -491,89 +468,3 @@ ggdraw(xlim = c(0, 28), ylim = c(0, 20)) +
 
 ---
 
-Having a way to emphasize locations on a map can also be a graphic that would be useful for biologists. The next steps will be to create blank sqaure plots that will make the map visualization interesting and accurate. In the following map, arrows will point to specific locations.
-
-First we will start with the overall packages needed to build this 
-
-Credit to Ilya Kashnitsky (https://ikashnitsky.github.io/2017/align-six-maps/).
-
-```{r listplot_packages, eval=FALSE}
-## library(sp)
-## library(sf)
-## library(ggplot2)
-## library(cowplot)
-## library(ggthemes)
-## library(gridExtra)
-## library(grid)
-## library(lattice)
-## library(tidyverse)
-```
-
-
-## Map Placement Function 
-
-The function below will allow us to grab plots that we have previously made, with `ggplotGrob` , and create arrows pointing to the maps. 
-
-The `list.plots`, is a simple list command to combine all of the previously created plots.
-
-Afterwards, a function is created to create a custom annotation of each plot, with their corresponding x-min and x-max coordinates. From the bottom left corner of the image, it would be considered 0,0 if it was compared to a mathematical graph. 
-
-The `df.arrows` has the beginning and ending locations of each line. If this case, there are two lines, but more lines can be created by adding more starting locations for `x=` and `y=`. 
-
-
-```{r listplots_function}
-
-## list.plots <- list(rmarkplot, rmarkplot2, rmarkplot3)
-## align_three_plots <- function(list.plots, family = "")
-## {
-##     require("dplyr")
-##     gg <- ggplot()+
-##         coord_equal(xlim = c(0, 80), ylim = c(0, 51), expand=TRUE) +
-##         annotation_custom(ggplotGrob(rmarkplot), xmin = 0.0, xmax =57, ymin = 0.0, ymax = 50) +
-##         annotation_custom(ggplotGrob(rmarkplot2),xmin = 58, xmax = 80, ymin = 25, ymax = 51) +
-##         annotation_custom(ggplotGrob(rmarkplot3), xmin = 58, xmax = 80, ymin = 0.0, ymax = 29) +
-##         labs(x = NULL, y = NULL) +
-##         theme_void()
-
-##     ## DF with the coordinates of the 2 arrows
-##     df.arrows <- data.frame(id=1:2,
-##         x=c(45.6,45.4),
-##         y=c(21.7,19.8),
-##         xend=c(58,58),
-##         yend=c(35,12))
-    
-##     gg <- gg +
-##         geom_segment(data = df.arrows %>% filter(id==1),
-##             aes(x=x,y=y,xend=xend,yend=yend),
-##             arrow = arrow(type="closed",length = unit(0.25,"cm"))) +
-##         geom_segment(data = df.arrows %>% filter(id==2),
-##             aes(x=x,y=y,xend=xend,yend=yend),
-##             arrow = arrow(type="closed",length = unit(0.25,"cm")))
-## }
-
-```
-
-
-## Creating a Simple Empty Square Plot
-
-The next code will allow up to make a simple empty square plot, that can be cloned so we can place the maps inside. 
-
-
-```{r listplot_blankplot}
-## p <- ggplot() +
-##   theme_map() +
-##   theme(panel.border = element_rect(color = "black", size = 0.5, fill = NA),aspect.ratio = 1)
-
-```
-
-## Cloning and Final Map 
-
-The function `mget` will clone the square plots three times. The `three` is just to combinge the `align_three_plots` function and the repetition plots in one argument. And the final step is to plot the function and the plots together. 
-
-```{r listplot_finalplot}
-## plots <- mget(rep("p", 3))
-
-## three <- align_three_plots(plots)
-
-## plot(three)
-```
