@@ -55,7 +55,7 @@ The package `ggplot2` implements the grammar of graphics in R, as a way to creat
 [^ggplotsf]: Note: Support of `sf` objects is only available since the version 3.0.0 of `ggplot2`, recently released on CRAN.
 
 
-## A tutorial to draw beautiful maps programmatically with R, sf and ggplot2
+## Drawing beautiful maps programmatically with R, `sf` and `ggplot2`
 
 This tutorial is the first part in a series of three:
 
@@ -71,7 +71,7 @@ In this section, we will cover the fundamentals of mapping using `ggplot2` assoc
 Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. The full list of packages necessary for this series of tutorials can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("cowplot", "ggmap", "ggplot2", "ggrepel", 
+install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
     "ggspatial", "libwgeom", "sf", "rworldmap", "rworldxtra"))
 ```
 
