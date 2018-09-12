@@ -1,6 +1,6 @@
-<<<<<<< HEAD
+
 ---
-title: "Drawing beautiful maps programmatically with R, sf and ggplot2 — Part 3: Layouts"
+title: "Drawing beautiful maps programmatically with R, sf and ggplot2  - Part 3: Layouts"
 author: "Mel Moreno and Mathieu Basille"
 output:
   html_document:
@@ -870,4 +870,3 @@ ggdraw(xlim = c(0, 28), ylim = c(0, 20)) +
 
 ---
 
->>>>>>> d0fac9cc0b06b88455ad196272ce9fcb1ca2a811
