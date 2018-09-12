@@ -1,5 +1,5 @@
 ---
-title: "Drawing beautiful maps programmatically with R, sf and ggplot2 — Part 1: Layouts"
+title: "Drawing beautiful maps programmatically with R, sf and ggplot2 — Part 3: Layouts"
 author: "Mel Moreno and Mathieu Basille"
 output:
   html_document:
@@ -149,7 +149,7 @@ First simplify `REGION` for the legend:
 levels(world$REGION)[7] <- "South America"
 ```
 
-Prepare the subplots, #1 world:
+Prepare the subplots, #1 world map:
 
 ```{r grid-world, fig.width = 12, fig.height = 5, out.width = "90%"}
 (gworld <- ggplot(data = world) +
@@ -161,7 +161,7 @@ Prepare the subplots, #1 world:
          panel.border = element_rect(fill = NA)))
 ```
 
-And #2 Gulf:
+And #2 Gulf map :
 
 ```{r grid-gulf}
 (ggulf <- ggplot(data = world) +
@@ -216,11 +216,11 @@ theme_set(theme_bw())
 plot_grid(gworld, ggulf, nrow = 1, rel_widths = c(2.3, 1))
 ```
 
-Some other commands can adjust the position of the figures such as adding `align=v` to align vertically on the left axis, and `align=h` to align horiztonally. 
+Some other commands can adjust the position of the figures such as adding `align=v` to align vertically, and `align=h` to align horiztonally. 
 
 Note also the existence of `get_legend` (`cowplot`), and that the legend can be used as any object.
 
-`ggsave` is OK to be used here.
+This map can be save using,`ggsave`:
  
 ```{r, eval = FALSE}
 ggsave("grid.pdf", width = 15, height =  5)
@@ -244,7 +244,7 @@ usa <- subset(world, ADMIN == "United States of America")
          730000)))
 ```
 
-Alaska (note: `datum = NA` removes graticules and coordinates):
+Alaska map (note: `datum = NA` removes graticules and coordinates):
 
 ```{r inset-alaska, fig.width = 10, fig.height = 6}
 ## Alaska: NAD83(NSRS2007) / Alaska Albers (3467)
@@ -255,7 +255,7 @@ Alaska (note: `datum = NA` removes graticules and coordinates):
          2500000), expand = FALSE, datum = NA))
 ```
 
-Hawaii:
+Hawaii map:
 
 ```{r inset-hawaii, fig.width = 10, fig.height = 7}
 ## Hawaii: Old Hawaiian (4135)
@@ -279,13 +279,13 @@ ggdraw(mainland) +
         x = 0.3, y = 0.05)
 ```
 
-`ggsave` is OK to use:
+This plot can be saved using `ggsave`:
 
 ```{r inset-ggdraw-save, eval = FALSE}
 ggsave("map-us-ggdraw.pdf", width = 10, height = 6)
 ```
 
-Same using grobs (note the use of xdiff/ydiff and arbitrary ratios):
+The same kind of plot can be created using grobs, with `ggplotGrob`, (note the use of xdiff/ydiff and arbitrary ratios):
 
 ```{r inset-grobs, fig.width = 10, fig.height = 6, out.width = "90%"}
 mainland +
@@ -305,7 +305,7 @@ mainland +
     )
 ```
 
-Save OK with `ggsave`:
+This plot can be saved using `ggsave`:
 
 ```{r inset-grobs-save, eval = FALSE}
 ggsave("map-inset-grobs.pdf", width = 10, height = 6)
@@ -332,9 +332,9 @@ print(hawaii, vp=vp1)
 
 # Several maps connected with arrows
 
-To bring about a more lively map arrangement, arrows can be used to bring the viewers eyes to specific areas in the plotting area. The next example will create a map with zoomed in areas, pointed to by arrows. 
+To bring about a more lively map arrangement, arrows can be used to bring the viewers eyes to specific areas in the plot. The next example will create a map with zoomed in areas, pointed to by arrows. 
 
-Firstly, we will create our main maps, and then our zoomed in map areas. 
+Firstly, we will create our main map, and then our zoomed in areas. 
 
 Site coordinates, same as Tutorial #1:
 
@@ -394,7 +394,7 @@ arrowA <- data.frame(x1 = 18.5, x2 = 23, y1 = 9.5, y2 = 14.5)
 arrowB <- data.frame(x1 = 18.5, x2 = 23, y1 = 8.5, y2 = 6.5)
 ```
 
-Final map using (`ggplot` only). The argument `geom_segment`, are the coordinates created in the previous script, to plot line segments ending with an arrow using `arrow=arrow()`:
+Final map using (`ggplot` only). The argument `geom_segment`, will be the coordinates created in the previous script, to plot line segments ending with an arrow using `arrow=arrow()`:
 
 ```{r map-arrows-plot, fig.width = 10, fig.height = 7, out.width = "90%"}
 ggplot() +
@@ -412,7 +412,7 @@ ggplot() +
     theme_void()
 ```
 
-`ggsave` works OK for this map.
+This plot can be saved using `ggsave`:
 
 ```{r, eval = FALSE}
 ggsave("florida-sites.pdf", width = 10, height = 7)
