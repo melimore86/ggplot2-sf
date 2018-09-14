@@ -38,16 +38,13 @@ library("googleway")
 library("ggrepel")
 ```
 
-
-# Drawing beautiful maps programmatically with R, `sf` and `ggplot2`
-
 This tutorial is the second part in a series of three:
 
-* General concepts illustrated with the world map
-* Adding additional layers: an example with points and polygons
-* Positioning and layout for complex maps
+* [General concepts illustrated with the world map](Tutorial_1.html)
+* Adding additional layers: an example with points and polygons (this document)
+* [Positioning and layout for complex maps](Tutorial_3.html)
 
-In the previous section, we presented general concepts with a map with little information (country borders only). The modular approach of `ggplot2` allows to successively add additional layers, for instance study sites or administrative delineations, as will be illustrated in this section.
+In the previous part, we presented general concepts with a map with little information (country borders only). The modular approach of `ggplot2` allows to successively add additional layers, for instance study sites or administrative delineations, as will be illustrated in this part.
 
 
 ## Getting started
@@ -223,14 +220,14 @@ Instead of looking up coordinates manually, the package `googleway` provides a f
 
 ```{r cities-googleway, eval = FALSE}
 library("googleway")
-key <- "<here_goes_your_key"
+key <- "put_your_google_api_key_here" # real key needed
 flcities <- data.frame(state = rep("Florida", 5), city = c("Miami", 
     "Tampa", "Orlando", "Jacksonville", "Sarasota"))
 coords <- apply(flcities, 1, function(x) {
     google_geocode(address = paste(x["city"], x["state"], sep = ", "), 
         key = key)
 })
-flcities <- cbind(flcities, do.call(rbind, lapply(res, geocode_coordinates)))
+flcities <- cbind(flcities, do.call(rbind, lapply(coords, geocode_coordinates)))
 ```
 
 We can now convert the data frame with coordinates to `sf` format:
