@@ -43,15 +43,13 @@ library("cowplot")
 ```
 
 
-# Drawing beautiful maps programmatically with R, `sf` and `ggplot2`
-
 This tutorial is the third part in a series of three:
 
-* General concepts illustrated with the world map
-* Adding additional layers: an example with points and polygons
-* Positioning and layout for complex maps
+* [General concepts illustrated with the world map](Tutorial_1.html)
+* [Adding additional layers: an example with points and polygons](Tutorial_2.html)
+* Positioning and layout for complex maps (this document)
 
-After the presentation of the basic map concepts, and the flexible approach in layer implemented in `ggplot2`, this section will illustrate how to achieve complex layouts, for instance with map insets, or several maps combined. Depending on the visual information that needs to be displayed, maps and their corresponding data might need to be arranged to create easy to read graphical representations. This tutorial will provide different approaches to arranges maps in the plot, in order to make the information portrayed more aesthetically appealing, and most importantly, convey the information better.
+After the presentation of the basic map concepts, and the flexible approach in layer implemented in `ggplot2`, this part illustrates how to achieve complex layouts, for instance with map insets, or several maps combined. Depending on the visual information that needs to be displayed, maps and their corresponding data might need to be arranged to create easy to read graphical representations. This tutorial will provide different approaches to arranges maps in the plot, in order to make the information portrayed more aesthetically appealing, and most importantly, convey the information better.
 
 
 ## Getting started
@@ -90,10 +88,10 @@ class(world)
 
 # General concepts
 
-2 solutions:
+There are 2 solutions to combine sub-maps:
 
-* Grobs (graphic objects, allow plots only in plot region, based on coordinates): directly using `ggplot2`
-* `ggdraw` (allows plots anywhere, including outer margins, based on relative position): package `cowplot`
+* using Grobs (graphic objects, allow plots only in plot region, based on coordinates), which directly use `ggplot2`
+* using `ggdraw` (allows plots anywhere, including outer margins, based on relative position) from package `cowplot`
 
 Example illustrating the difference between the two, and their use:
 
@@ -139,11 +137,11 @@ ggdraw(g1) +
 
 # Several maps side by side or on a grid
  
-Having a way show in a visualization, a specific area can be very useful. Many scientists usually create maps for each specific area manually. This is fine, but there are simpler ways to display what is needed for a report, or publication. 
+Having a way show in a visualization, a specific area can be very useful. Many scientists usually create maps for each specific area individually. This is fine, but there are simpler ways to display what is needed for a report, or publication. 
 
 This exmaple is using two maps side by side, including the legend of the first one. It illustrates how to use a custom grid, which can be made a lot more complex with different elements.
 
-First simplify `REGION` for the legend:
+First, simplify `REGION` for the legend:
 
 ```{r grid-region}
 levels(world$REGION)[7] <- "South America"
@@ -177,7 +175,7 @@ And #2 Gulf map :
 
 The command `ggplotGrob` signals to `ggplot` to take each created map, and how to arrange each map. The argument `coord_equal` can specify the length, `ylim`, and width, `xlim`, for the entire plotting area. Where as in `annotation_custom`, each maps'  `xmin`, `xmax`, `ymin`, and `ymax` can be specified to allow for complete customization. 
 
-```{rr empty-grobs, fig.width = 15, fig.height = 5, out.width = "90%"}
+```{r empty-grobs, fig.width = 15, fig.height = 5, out.width = "90%"}
 
 #Creating a faux empty data frame
 df <- data.frame()
@@ -207,7 +205,8 @@ ggplot() +
     theme_void()
 ```
 
-Using `plot_grid(cowplot)` to arrange `ggplot` figures, is versatile. Any `ggplot` figure can be arranged just like the figure above. There are many commands that allow for the map to have different placements, such as `nrow=1` means that the figure will only occpuy one row and muitple columns, and `ncol=1` means the figure will be plotted on one column and multiple rows. The command `rel_widths` establishes the width of each map, meaning that the first map `gworld` will have a relative width of `2.3`, and the map `ggulf` has the relative width of `1`. 
+In the second approach,
+using `cowplot::plot_grid` to arrange `ggplot` figures, is quite versatile. Any `ggplot` figure can be arranged just like the figure above. There are many commands that allow for the map to have different placements, such as `nrow=1` means that the figure will only occupy one row and multiple columns, and `ncol=1` means the figure will be plotted on one column and multiple rows. The command `rel_widths` establishes the width of each map, meaning that the first map `gworld` will have a relative width of `2.3`, and the map `ggulf` has the relative width of `1`. 
 
 ```{r grid-plot-grid, fig.width = 15, fig.height = 5, out.width = "90%"}
 library("cowplot")
@@ -314,7 +313,7 @@ ggsave("map-inset-grobs.pdf", width = 10, height = 6)
 
 The `print` command can also be used place multiple maps in one plotting area. 
 
-To specify where each plot is displayed with the  `print` function, the argument `viewport` needs to specify the maximum width and height of each map, and the minimum x and y coordinates of where the maps are located in the plotting area. The argument `just` will make a position on how the secondary maps will be displayed. All maps are defaulted the same size, until the sizes are adjusted with `width` and `height`.
+To specify where each plot is displayed with the  `print` function, the argument `viewport` needs to include the maximum width and height of each map, and the minimum x and y coordinates of where the maps are located in the plotting area. The argument `just` will make a position on how the secondary maps will be displayed. All maps are defaulted the same size, until the sizes are adjusted with `width` and `height`.
 
 ```{r print_vp}
 vp <- viewport(width = 0.37, height = 0.10, x = 0.20, y =0.25, just = c("bottom")) 
@@ -359,7 +358,7 @@ Mainlaind map of Florida, #1:
          panel.border = element_rect(fill = NA)))
 ```
 
-#2 Site A
+A map for site A is created by layering the map and points we created earlier. `ggplot` layers `geom_sf` objects and plot them spatially. 
 
 ```{r map-arrows-sitea, fig.width = 3, fig.height = 3, out.width = "35%"}
 (siteA <- ggplot(data = world) +
@@ -373,7 +372,7 @@ Mainlaind map of Florida, #1:
          panel.border = element_rect(fill = NA)))
 ```
 
-#3 Site B
+A map for site B:
 
 ```{r map-arrows-siteb, fig.width = 3, fig.height = 3, out.width = "35%"}
 (siteB <- ggplot(data = world) + 
@@ -387,7 +386,7 @@ Mainlaind map of Florida, #1:
          panel.border = element_rect(fill = NA)))
 ```
 
-Coordinates of the 2 arrows will need to be specified before plotting. The argumemnts `x1`, and `x2` will plot the arrow line from a specific starting x-axis location,`x1`, and ending in a specific x-axis,`x2`. The same applies for `y1` and `y2`, with the y-axis respectively:
+Coordinates of the two arrows will need to be specified before plotting. The argumemnts `x1`, and `x2` will plot the arrow line from a specific starting x-axis location,`x1`, and ending in a specific x-axis,`x2`. The same applies for `y1` and `y2`, with the y-axis respectively:
 
 ```{r map-arrows-arrows}
 arrowA <- data.frame(x1 = 18.5, x2 = 23, y1 = 9.5, y2 = 14.5)
@@ -430,6 +429,4 @@ ggdraw(xlim = c(0, 28), ylim = c(0, 20)) +
     geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2), data = arrowB, 
         arrow = arrow(), lineend = "round")
 ```
-
-
 
