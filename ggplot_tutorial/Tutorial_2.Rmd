@@ -55,8 +55,9 @@ In the previous section, we presented general concepts with a map with little in
 Many R packages are available from [CRAN](https://cran.r-project.org/), the Comprehensive R Archive Network, which is the primary repository of R packages. The full list of packages necessary for this series of tutorials can be installed with:
 
 ```{r pkg-install-all, eval = FALSE}
-install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
-    "ggspatial", "libwgeom", "sf", "rworldmap", "rworldxtra"))
+install.packages(c("cowplot", "ggplot2", "ggrepel", "ggspatial",
+    "googleway", "grid", "libwgeom", "rworldmap", "rworldxtra",
+    "sf", "tools"))
 ```
 
 We start by loading the basic packages necessary for all maps, i.e. `ggplot2` and `sf`. We also suggest to use the classic dark-on-light theme for `ggplot2` (`theme_bw`), which is more appropriate for maps:
