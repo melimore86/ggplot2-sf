@@ -149,7 +149,7 @@ In this example, a zoom in on the Gulf of Mexico is placed on the side of the wo
 levels(world$REGION)[7] <- "South America"
 ```
 
-We now prepare the subplots, starting by the world map with a rectangle around the Gulf of Mexico (see Section 1 and 2 for the details of how to prepare this map):
+We now prepare the subplots, starting by the world map with a rectangle around the Gulf of Mexico, using `geom_rect`, (see Section 1 and 2 for the details of how to prepare this map). `geom_rect` uses spatial coordinates to create the rectangle on the map, specifying the `xmin`, `xmax`,`ymin`, and `ymax`:
 
 ```{r grid-world, fig.width = 12, fig.height = 5, out.width = "90%"}
 (gworld <- ggplot(data = world) +
@@ -161,7 +161,7 @@ We now prepare the subplots, starting by the world map with a rectangle around t
          panel.border = element_rect(fill = NA)))
 ```
 
-The second map is very similar, but centered on the Gulf of Mexico (using `coord_sf`):
+The second map is very similar, but centered on the Gulf of Mexico (using `coord_sf`). `scale_fill_viridis` is used to create a color scheme for the map, which will override the default colors of `fill=REGION`:
 
 ```{r grid-gulf}
 (ggulf <- ggplot(data = world) +
@@ -206,7 +206,7 @@ ggsave("world_grid.pdf", width = 15, height =  5)
 
 To inset maps directly on a background map, both solutions presented earlier are viable (and one might prefer one or the other depending on relative or absolute coordinates). We will illustrate this using a map of the 50 states of the United States, including Alaska and Hawaii (note: both Alaska and Hawaii will not be to scale).
 
-We start by preparing the continental states first, using the reference US National Atlas Equal Area projection. The main trick is to find the right coordinates, in the projection used, and this may cause some fine tuning at each step. Here, we enlarge the extent of the plot region on purpose to give some room for the insets: 
+We start by preparing the continental states first, using the reference US National Atlas Equal Area projection. The main trick is to find the right coordinates, in the projection used, and this may cause some fine tuning at each step. Here, we enlarge the extent of the plot region on purpose to give some room for the insets. Using `crs = st_crs(2163)` sets the coordinate projection for the USA map: 
 
 ```{r inset-usa, fig.width = 10, fig.height = 6, out.width = "90%"}
 usa <- subset(world, ADMIN == "United States of America")
@@ -286,6 +286,15 @@ To bring about a more lively map arrangement, arrows can be used to direct the v
 
 We start by creating the general map, here a map of Florida, (see Tutorial 1 for the details):
 
+```{r sites-sites, include=FALSE}
+(sites <- data.frame(longitude = c(-80.144005, -80.109), latitude = c(26.479005, 
+    26.83)))
+(sites <- st_as_sf(sites, coords = c("longitude", "latitude"), 
+    crs = 4326, agr = "constant"))
+
+```
+
+
 ```{r map-arrows-florida}
 (florida <- ggplot(data = world) +
      geom_sf(fill = "antiquewhite1") +
@@ -325,7 +334,7 @@ We then prepare two study sites (simply called `A` and `B` here):
          panel.border = element_rect(fill = NA)))
 ```
 
-As we want to connect the two subplots to main map using arrows, the coordinates of the two arrows will need to be specified before plotting. We prepare a `data.frame` storing start and end coordinates (`x1` and `x2` on the x-axis, `y1` and `y2` on the y-axis):
+As we want to connect the two subplots to main map using arrows, the coordinates of the two arrows will need to be specified before plotting. We prepare a `data.frame` storing start and end coordinates (`x1`, starting point, and `x2`, end point, on the x-axis, `y1`, starting point, and `y2`, ending point, on the y-axis):
 
 ```{r map-arrows-arrows}
 arrowA <- data.frame(x1 = 18.5, x2 = 23, y1 = 9.5, y2 = 14.5)
