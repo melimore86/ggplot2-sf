@@ -1,4 +1,4 @@
 ##ggplot + sf  
   
-  
-ggplot_tutorial-- Tutorials 1,2, and 3   
+   
+Repository of Summer 2017 Internship, that has tutorials using ggplot + sf for map making.
